@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#0A0A0A"/>
+
+  <!-- Outer ring -->
+  <circle cx="256" cy="256" r="220" stroke="#00E5FF" stroke-width="8" fill="none"/>
+
+  <!-- Graduation cap base -->
+  <path d="M256 180L140 220L256 260L372 220L256 180Z" fill="#00E5FF"/>
+
+  <!-- Graduation cap top -->
+  <path d="M256 180L372 220V240L256 280L140 240V220L256 180Z" fill="#00E5FF" opacity="0.7"/>
+
+  <!-- Book pages -->
+  <rect x="220" y="280" width="72" height="80" rx="4" fill="#00E5FF"/>
+  <line x1="235" y1="295" x2="277" y2="295" stroke="#0A0A0A" stroke-width="3"/>
+  <line x1="235" y1="310" x2="277" y2="310" stroke="#0A0A0A" stroke-width="3"/>
+  <line x1="235" y1="325" x2="270" y2="325" stroke="#0A0A0A" stroke-width="3"/>
+
+  <!-- Social connection dots -->
+  <circle cx="180" cy="320" r="12" fill="#00E5FF"/>
+  <circle cx="332" cy="320" r="12" fill="#00E5FF"/>
+  <circle cx="256" cy="380" r="12" fill="#00E5FF"/>
+
+  <!-- Connection lines -->
+  <line x1="192" y1="320" x2="220" y2="320" stroke="#00E5FF" stroke-width="3" opacity="0.6"/>
+  <line x1="292" y1="320" x2="320" y2="320" stroke="#00E5FF" stroke-width="3" opacity="0.6"/>
+  <line x1="235" y1="360" x2="256" y2="370" stroke="#00E5FF" stroke-width="3" opacity="0.6"/>
+  <line x1="277" y1="360" x2="256" y2="370" stroke="#00E5FF" stroke-width="3" opacity="0.6"/>
+
+  <!-- DDU text -->
+  <text x="256" y="140" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#00E5FF" text-anchor="middle">DDU</text>
+</svg>
