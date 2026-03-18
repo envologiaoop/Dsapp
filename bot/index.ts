@@ -3,7 +3,7 @@ import * as dotenv from 'dotenv';
 import * as crypto from 'crypto';
 import { User } from '../src/models/User.js';
 import { Ad } from '../src/models/Ad.js';
-import { Notification } from '../src/models/Notification.js';
+// Notification model no longer needed in bot UI (notifications are pushed automatically)
 import { Message } from '../src/models/Message.js';
 import { Post } from '../src/models/Post.js';
 import { connectDB } from '../src/db.js';
@@ -21,11 +21,16 @@ const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
 const useWebhook = Boolean(webhookUrl);
 
 // Admin Configuration
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'Envologia01@gmail.com';
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || 'Envologia01@gmail.com')
+  .split(',')
+  .map((e) => e.trim())
+  .filter(Boolean);
 const ADMIN_TELEGRAM_USERNAME = process.env.ADMIN_TELEGRAM_USERNAME || '@dev_envologia';
 const ADMIN_TELEGRAM_USER_ID = process.env.ADMIN_TELEGRAM_USER_ID || '6882100039';
 const USER_CACHE_TTL_MS = 30_000;
+const RESPONSE_CACHE_TTL_MS = 12_000;
 const telegramUserCache = new Map<string, { user: any; expiresAt: number }>();
+const botResponseCache = new Map<string, { value: any; expiresAt: number }>();
 
 // Helper function to get user from telegram chat ID
 async function getUserFromTelegram(chatId: number, options?: { fresh?: boolean }) {
@@ -55,6 +60,18 @@ function primeTelegramUserCache(chatId: number, user: any) {
   });
 }
 
+async function getCachedResponse<T>(key: string, builder: () => Promise<T>, ttlMs = RESPONSE_CACHE_TTL_MS) {
+  const now = Date.now();
+  const cached = botResponseCache.get(key);
+  if (cached && cached.expiresAt > now) {
+    return cached.value as T;
+  }
+
+  const value = await builder();
+  botResponseCache.set(key, { value, expiresAt: now + ttlMs });
+  return value;
+}
+
 // Helper function to format date
 function formatDate(date: Date): string {
   const now = new Date();
@@ -76,7 +93,7 @@ function getMainMenuKeyboard() {
     inline_keyboard: [
       [
         { text: '📊 My Stats', callback_data: 'menu_stats' },
-        { text: '🔔 Notifications', callback_data: 'menu_notifications' }
+        { text: '❓ Help', callback_data: 'menu_help' }
       ],
       [
         { text: '💬 Messages', callback_data: 'menu_messages' },
@@ -85,9 +102,6 @@ function getMainMenuKeyboard() {
       [
         { text: '📢 Ads', callback_data: 'menu_ads' },
         { text: '👤 My Profile', callback_data: 'menu_profile' }
-      ],
-      [
-        { text: '❓ Help', callback_data: 'menu_help' }
       ]
     ]
   };
@@ -112,7 +126,7 @@ export function initBot(io?: any) {
 
   // Log admin configuration on startup
   console.log("Telegram Bot initializing with admin config:");
-  console.log(`  Admin Email: ${ADMIN_EMAIL}`);
+  console.log(`  Admin Emails: ${ADMIN_EMAILS.join(', ')}`);
   console.log(`  Admin Telegram: ${ADMIN_TELEGRAM_USERNAME}`);
   console.log(`  Admin User ID: ${ADMIN_TELEGRAM_USER_ID}`);
   console.log(`  Webhook mode: ${useWebhook ? `enabled (${webhookUrl})` : 'disabled (polling)'}`);
@@ -244,7 +258,6 @@ export function initBot(io?: any) {
       "/profile [@username] - View profile\n" +
       "/trending - See trending posts\n\n" +
       "*Communication:*\n" +
-      "/notifications - Check notifications\n" +
       "/unread - View unread messages\n\n" +
       "*Other:*\n" +
       "/ads - View advertisements\n" +
@@ -287,18 +300,20 @@ export function initBot(io?: any) {
         return;
       }
 
-      const [stats] = await Post.aggregate([
-        { $match: { userId: user._id, isDeleted: false } },
-        {
-          $group: {
-            _id: null,
-            posts: { $sum: 1 },
-            totalLikes: { $sum: { $size: { $ifNull: ['$likedBy', []] } } },
-            totalComments: { $sum: { $ifNull: ['$commentsCount', 0] } },
-            totalShares: { $sum: { $ifNull: ['$sharesCount', 0] } },
+      const [stats] = await getCachedResponse(`stats:${user._id.toString()}`, async () => (
+        Post.aggregate([
+          { $match: { userId: user._id, isDeleted: false } },
+          {
+            $group: {
+              _id: null,
+              posts: { $sum: 1 },
+              totalLikes: { $sum: { $size: { $ifNull: ['$likedBy', []] } } },
+              totalComments: { $sum: { $ifNull: ['$commentsCount', 0] } },
+              totalShares: { $sum: { $ifNull: ['$sharesCount', 0] } },
+            },
           },
-        },
-      ]);
+        ])
+      ));
       const postsCount = stats?.posts || 0;
       const totalLikes = stats?.totalLikes || 0;
       const totalComments = stats?.totalComments || 0;
@@ -338,64 +353,11 @@ export function initBot(io?: any) {
   }
 
   async function handleNotifications(chatId: number) {
-    try {
-      const user = await getUserFromTelegram(chatId);
-      if (!user) {
-        bot.sendMessage(
-          chatId,
-          "⚠️ Please link your account first by sending your 6-digit verification code."
-        );
-        return;
-      }
-
-      const notifications = await Notification.find({ userId: user._id })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .populate('relatedUserId', 'name username');
-
-      if (notifications.length === 0) {
-        bot.sendMessage(
-          chatId,
-          "🔔 *Notifications*\n\nNo notifications yet. Start connecting with others!",
-          { parse_mode: 'Markdown' }
-        );
-        return;
-      }
-
-      const unreadCount = notifications.filter(n => !n.isRead).length;
-      let notifText = `🔔 *Your Notifications* (${unreadCount} unread)\n\n`;
-
-      notifications.slice(0, 8).forEach((notif) => {
-        const icon = notif.isRead ? '○' : '●';
-        const typeEmoji = {
-          'like': '❤️',
-          'follow': '👥',
-          'comment': '💬',
-          'share': '🔄',
-          'message': '✉️'
-        }[notif.type] || '🔔';
-
-        notifText += `${icon} ${typeEmoji} ${notif.content}\n`;
-        notifText += `   ${formatDate(notif.createdAt)}\n\n`;
-      });
-
-      if (notifications.length > 8) {
-        notifText += `\n_...and ${notifications.length - 8} more_`;
-      }
-
-      bot.sendMessage(chatId, notifText, {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [[
-            { text: '✓ Mark All Read', callback_data: 'notif_mark_read' },
-            { text: '🔙 Menu', callback_data: 'menu_main' }
-          ]]
-        }
-      });
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      bot.sendMessage(chatId, "⚠️ Failed to load notifications. Please try again later.");
-    }
+    bot.sendMessage(
+      chatId,
+      "🔔 Notifications are now delivered automatically.\n\n" +
+        "To control what you receive, open the DDU Social app → Settings → Telegram notifications.",
+    );
   }
 
   async function handleUnread(chatId: number) {
@@ -409,14 +371,17 @@ export function initBot(io?: any) {
         return;
       }
 
-      const unreadMessages = await Message.find({
-        receiverId: user._id,
-        isRead: false,
-        deletedAt: { $exists: false }
-      })
-        .sort({ createdAt: -1 })
-        .limit(10)
-        .populate('senderId', 'name username');
+      const unreadMessages = await getCachedResponse(`unread:${user._id.toString()}`, async () => (
+        Message.find({
+          receiverId: user._id,
+          isRead: false,
+          deletedAt: { $exists: false }
+        })
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .populate('senderId', 'name username')
+          .lean()
+      ));
 
       if (unreadMessages.length === 0) {
         bot.sendMessage(
@@ -469,7 +434,7 @@ export function initBot(io?: any) {
       }
 
       const targetUser = requestedUsername
-        ? await User.findOne({ username: requestedUsername })
+        ? await User.findOne({ username: requestedUsername }).lean()
         : currentUser;
 
       if (!targetUser) {
@@ -477,7 +442,9 @@ export function initBot(io?: any) {
         return;
       }
 
-      const postsCount = await Post.countDocuments({ userId: targetUser._id, isDeleted: false });
+      const postsCount = await getCachedResponse(`profile:posts:${targetUser._id.toString()}`, () => (
+        Post.countDocuments({ userId: targetUser._id, isDeleted: false })
+      ));
       const isOwnProfile = targetUser._id.toString() === currentUser._id.toString();
 
       let profileText = `👤 *Profile*\n\n`;
@@ -535,30 +502,32 @@ export function initBot(io?: any) {
       }
 
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      const trendingPosts = await Post.aggregate([
-        {
-          $match: {
-            isDeleted: false,
-            createdAt: { $gte: sevenDaysAgo }
-          }
-        },
-        {
-          $addFields: {
-            likesCount: { $size: { $ifNull: ['$likedBy', []] } }
-          }
-        },
-        { $sort: { likesCount: -1, commentsCount: -1, sharesCount: -1, createdAt: -1 } },
-        { $limit: 5 },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'userId',
-            foreignField: '_id',
-            as: 'user'
-          }
-        },
-        { $unwind: '$user' }
-      ]);
+      const trendingPosts = await getCachedResponse('trending:7d', async () => (
+        Post.aggregate([
+          {
+            $match: {
+              isDeleted: false,
+              createdAt: { $gte: sevenDaysAgo }
+            }
+          },
+          {
+            $addFields: {
+              likesCount: { $size: { $ifNull: ['$likedBy', []] } }
+            }
+          },
+          { $sort: { likesCount: -1, commentsCount: -1, sharesCount: -1, createdAt: -1 } },
+          { $limit: 5 },
+          {
+            $lookup: {
+              from: 'users',
+              localField: 'userId',
+              foreignField: '_id',
+              as: 'user'
+            }
+          },
+          { $unwind: '$user' }
+        ])
+      ));
 
       if (trendingPosts.length === 0) {
         bot.sendMessage(
@@ -602,12 +571,13 @@ export function initBot(io?: any) {
   }
 
   function handleContact(chatId: number) {
+    const primaryAdminEmail = ADMIN_EMAILS[0] || 'Envologia01@gmail.com';
     bot.sendMessage(
       chatId,
       "👨‍💻 *Contact the Developer*\n\n" +
       "Need to reach out to the development team?\n\n" +
       `Telegram: ${ADMIN_TELEGRAM_USERNAME}\n` +
-      `Email: ${ADMIN_EMAIL}\n\n` +
+      `Email: ${primaryAdminEmail}\n\n` +
       "For technical issues and support, use /support",
       {
         parse_mode: 'Markdown',
@@ -730,7 +700,8 @@ export function initBot(io?: any) {
   bot.onText(/\/help/, (msg) => handleHelp(msg.chat.id));
   bot.onText(/\/menu/, (msg) => handleMenu(msg.chat.id));
   bot.onText(/\/stats/, (msg) => handleStats(msg.chat.id));
-  bot.onText(/\/notifications/, (msg) => handleNotifications(msg.chat.id));
+  // Notifications are delivered automatically based on in-app toggles.
+  // The bot no longer exposes a notifications UI.
   bot.onText(/\/unread/, (msg) => handleUnread(msg.chat.id));
   bot.onText(/\/profile(?:\s+@?(\w+))?/, (msg, match) => handleProfile(msg.chat.id, match?.[1]));
   bot.onText(/\/trending/, (msg) => handleTrending(msg.chat.id));
@@ -793,8 +764,7 @@ export function initBot(io?: any) {
           break;
 
         case 'menu_notifications':
-          bot.answerCallbackQuery(query.id, { text: '🔔 Loading notifications...' });
-          await handleNotifications(chatId);
+          bot.answerCallbackQuery(query.id, { text: 'Notifications are managed in the app.' });
           break;
 
         case 'menu_messages':
@@ -823,17 +793,7 @@ export function initBot(io?: any) {
           break;
 
         case 'notif_mark_read':
-          if (user) {
-            await Notification.updateMany(
-              { userId: user._id, isRead: false },
-              { $set: { isRead: true } }
-            );
-            bot.answerCallbackQuery(query.id, {
-              text: '✓ All notifications marked as read',
-              show_alert: true
-            });
-            await handleNotifications(chatId);
-          }
+          bot.answerCallbackQuery(query.id, { text: 'Notifications are managed in the app.' });
           break;
 
         default:

@@ -11,12 +11,24 @@
       "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
+    },
+    {
+      "src": "/icon-192-maskable.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",
   "background_color": "#0A0A0A",
   "display": "standalone",
   "scope": "/",
-  "theme_color": "#00E5FF",
+  "theme_color": "#0A0A0A",
   "description": "The official social hub for Dire Dawa University students."
 }
