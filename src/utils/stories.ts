@@ -11,20 +11,20 @@ export function sortStoryGroups(groups: StoryGroup[], currentUserId: string): St
     if (g.user?._id === currentUserId) return -1000;
     return g.hasViewed ? 10 : 0;
   };
-  return list.sort((a, b) => {
-    const sa = score(a);
-    const sb = score(b);
-    if (sa !== sb) return sa - sb;
-    const ta = new Date(a.stories?.[0]?.createdAt || 0).getTime();
-    const tb = new Date(b.stories?.[0]?.createdAt || 0).getTime();
-    return tb - ta;
-  });
+  return list
+    .map((g) => ({ g, score: score(g), time: new Date(g.stories?.[0]?.createdAt || 0).getTime() }))
+    .sort((a, b) => {
+      if (a.score !== b.score) return a.score - b.score;
+      return b.time - a.time;
+    })
+    .map(({ g }) => g);
 }
 
 export function orderStoriesForViewer<T extends { createdAt?: string }>(stories: T[]): T[] {
-  return (Array.isArray(stories) ? stories.slice() : []).sort(
-    (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-  );
+  return (Array.isArray(stories) ? stories.slice() : [])
+    .map((s) => ({ s, time: new Date(s.createdAt || 0).getTime() }))
+    .sort((a, b) => a.time - b.time)
+    .map(({ s }) => s);
 }
 
 export function getStoryTimeRemaining(expiresAt?: string | Date | null, now: Date = new Date()): string {

@@ -1479,16 +1479,13 @@ app.get('/api/users/:userId/suggestions', async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(60)
       .lean();
+    const connectionIds = new Set([
+      ...user.followingIds.map((id) => id.toString()),
+      ...user.followerIds.map((id) => id.toString()),
+    ]);
     const previewIds = new Set<string>();
     candidates.forEach((candidate) => {
-      getMutualFriendIds(
-        candidate.followerIds,
-        [
-          ...user.followingIds.map((id) => id.toString()),
-          ...user.followerIds.map((id) => id.toString()),
-        ],
-        userId
-      )
+      getMutualFriendIds(candidate.followerIds, connectionIds, userId)
         .slice(0, 3)
         .forEach((id) => previewIds.add(id));
     });

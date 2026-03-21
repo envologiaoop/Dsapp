@@ -29,9 +29,13 @@ export function scoreFeedPost(post: RankedPost) {
 }
 
 export function rankFeedPosts<T extends RankedPost>(posts: T[]) {
-  return [...posts].sort((a, b) => {
-    const scoreDiff = scoreFeedPost(b) - scoreFeedPost(a);
-    if (Math.abs(scoreDiff) > 0.01) return scoreDiff;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
+  return posts
+    .slice()
+    .map((post) => ({ post, score: scoreFeedPost(post) }))
+    .sort((a, b) => {
+      const scoreDiff = b.score - a.score;
+      if (Math.abs(scoreDiff) > 0.01) return scoreDiff;
+      return new Date(b.post.createdAt).getTime() - new Date(a.post.createdAt).getTime();
+    })
+    .map(({ post }) => post);
 }

@@ -21,10 +21,13 @@ const normalizeIds = (ids: IdLike[]) => ids.map((id) => id.toString());
 
 export function getMutualFriendIds(
   targetFollowerIds: IdLike[],
-  currentConnectionIds: Iterable<string>,
+  currentConnectionIds: Set<string> | Iterable<string>,
   currentUserId?: string | null
 ) {
-  const currentConnections = new Set(currentConnectionIds);
+  const currentConnections =
+    currentConnectionIds instanceof Set
+      ? currentConnectionIds
+      : new Set<string>(currentConnectionIds);
   return Array.from(
     new Set(
       normalizeIds(targetFollowerIds).filter((id) => id !== currentUserId && currentConnections.has(id))
