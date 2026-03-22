@@ -562,16 +562,28 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onFinish }) => {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error || 'Failed to reset password');
-      if (forgotIdentifier.includes('@')) {
-        setLoginEmail(forgotIdentifier);
+
+      // Auto-login after successful password reset
+      if (data?.autoLogin && data?.user && data?.token) {
+        const authenticatedUser = { ...data.user, authToken: data.token };
+        if (data.user.telegramChatId) {
+          finishAuth(authenticatedUser);
+        } else {
+          beginTelegramGate(authenticatedUser, 'login');
+        }
+      } else {
+        // Fallback to manual login if auto-login not available
+        if (forgotIdentifier.includes('@')) {
+          setLoginEmail(forgotIdentifier);
+        }
+        setLoginPassword('');
+        setResetCode('');
+        setNewPassword('');
+        setConfirmNewPassword('');
+        setForgotIdentifier('');
+        goTo('login');
+        setSuccess('Password updated. You can sign in now.');
       }
-      setLoginPassword('');
-      setResetCode('');
-      setNewPassword('');
-      setConfirmNewPassword('');
-      setForgotIdentifier('');
-      goTo('login');
-      setSuccess('Password updated. You can sign in now.');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to reset password');
     } finally {
@@ -621,9 +633,23 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onFinish }) => {
         finishAuth(data.user);
         return;
       }
-      setPendingTelegramStatus(
-        `Still waiting for verification. Send the code to ${pendingTelegramHandle}, then try again.`
-      );
+      if (data?.error) {
+        if (data.error.includes('expired')) {
+          setPendingTelegramStatus(
+            'Code has expired. Please generate a new code using the "New code" button below.'
+          );
+        } else {
+          setPendingTelegramStatus(data.error);
+        }
+      } else if (data?.waiting) {
+        setPendingTelegramStatus(
+          `Still waiting for verification. Send the code to ${pendingTelegramHandle}, then try again.`
+        );
+      } else {
+        setPendingTelegramStatus(
+          `Unable to verify. Please ensure you sent the code to ${pendingTelegramHandle}.`
+        );
+      }
     } catch (e) {
       setPendingTelegramStatus(
         e instanceof Error ? e.message : 'Unable to verify Telegram right now.'

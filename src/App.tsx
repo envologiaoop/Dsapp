@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense, useMemo } from 'react';
 import { Home, MessageSquare, Ghost, LogOut, Shield, Bell, Plus, User, Search, Lock, Eye, HelpCircle, Flag, ChevronRight, UserCog, Sparkles, Copy, RefreshCw, ExternalLink, X } from 'lucide-react';
 import { OnboardingFlow } from './components/Onboarding/OnboardingFlow';
 import { IntroductionFlow } from './components/Onboarding/IntroductionFlow';
@@ -99,6 +99,11 @@ export default function App() {
   // Stable refs to avoid stale closures in socket effects
   const fetchChatsRef = useRef<(() => void) | null>(null);
   const chatDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Compute total unread messages for badge
+  const totalUnreadMessages = useMemo(() => {
+    return chats.reduce((sum, chat) => sum + (chat.lastMessage?.unreadCount || 0), 0);
+  }, [chats]);
 
   // Computed values
   const ghostModeDisabled = !canUseGhostMode(user?.createdAt);
@@ -1032,7 +1037,12 @@ export default function App() {
                           setComposerNotice('Your post was submitted for review and will appear once approved.');
                         } else {
                           setComposerNotice('Your post was published to the feed.');
+                          // Instantly add the post to the feed for immediate reflection
+                          if (createdPost && createdPost.approvalStatus !== 'pending') {
+                            setPosts(prevPosts => [createdPost, ...prevPosts]);
+                          }
                         }
+                        // Also fetch to ensure consistency with server
                         fetchPosts();
                       }}
                     />
@@ -1724,7 +1734,7 @@ export default function App() {
             { icon: Home, label: 'Home', onClick: () => (activeTab === 'home' ? (fetchPosts(), fetchStories()) : setActiveTab('home')) },
             { icon: Search, label: 'Search', onClick: () => setShowSearch(true) },
             { icon: Plus, label: 'Create', onClick: openCreateMenu },
-            { icon: MessageSquare, label: 'Chat', onClick: () => (activeTab === 'chat' ? fetchChats() : setActiveTab('chat')) },
+            { icon: MessageSquare, label: 'Chat', onClick: () => (activeTab === 'chat' ? fetchChats() : setActiveTab('chat')), badge: totalUnreadMessages },
             { icon: User, label: 'Profile', onClick: openOwnProfile },
           ]}
           activeLabel={dockActiveLabel}
