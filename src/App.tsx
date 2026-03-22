@@ -736,61 +736,50 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-background pb-24 text-foreground">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-[-10%] top-[-8rem] h-72 w-72 rounded-full bg-primary/12 blur-3xl" />
-        <div className="absolute right-[-8%] top-32 h-80 w-80 rounded-full bg-accent/12 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-64 w-[30rem] -translate-x-1/2 rounded-full bg-primary/8 blur-3xl" />
-      </div>
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-white/30 bg-background/70 px-6 py-4 backdrop-blur-2xl">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between rounded-[26px] border border-white/25 bg-background/55 px-4 py-3 shadow-[0_18px_50px_-30px_rgba(15,23,42,0.65)] backdrop-blur-xl">
-        <div className="flex items-center gap-2">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-[0_16px_35px_-18px_rgba(15,23,42,0.85)]">
-            <Sparkles size={18} />
-          </div>
-          <div className="space-y-0.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">Digital Campus</p>
-            <h1 className="text-2xl font-bold tracking-[-0.04em] text-primary">Social</h1>
-          </div>
-          {isAnonymous && (
-            <div className="ml-2 flex items-center gap-1 rounded-full border border-border/70 bg-background/80 px-2 py-0.5">
-              <Ghost size={12} className="text-muted-foreground" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Ghost Mode</span>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => setShowSearch(true)}
-            className="p-2 rounded-full bg-muted text-muted-foreground hover:bg-muted/80 transition-all"
-            aria-label="Search"
-          >
-            <Search size={20} />
-          </button>
-          <NotificationBell userId={user?.id} onOpen={() => setShowNotifications(true)} />
-          <ThemeSwitch />
-          <button
-            onClick={toggleGhostMode}
-            className={cn(
-              "p-2 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed",
-              isAnonymous ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+      <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-lg items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold tracking-tight ddu-gradient-text">DDU Social</h1>
+            {isAnonymous && (
+              <div className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5">
+                <Ghost size={11} className="text-muted-foreground" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Ghost</span>
+              </div>
             )}
-            disabled={ghostModeDisabled}
-            title={ghostModeDisabled ? `Ghost mode unlocks after ${GHOST_MODE_MIN_ACCOUNT_AGE_DAYS} days` : 'Ghost mode'}
-          >
-            <Ghost size={20} />
-          </button>
-          <button
-            onClick={openOwnProfile}
-            className="w-10 h-10 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center font-bold text-accent overflow-hidden hover:border-accent/50 transition-all"
-          >
-            {user?.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
-            ) : (
-              user?.name?.[0] || 'U'
-            )}
-          </button>
-        </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setShowSearch(true)}
+              className="p-2 rounded-full hover:bg-muted transition-colors"
+              aria-label="Search"
+            >
+              <Search size={22} />
+            </button>
+            <NotificationBell userId={user?.id} onOpen={() => setShowNotifications(true)} />
+            <ThemeSwitch />
+            <button
+              onClick={toggleGhostMode}
+              className={cn(
+                "p-2 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+                isAnonymous ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+              disabled={ghostModeDisabled}
+              title={ghostModeDisabled ? `Ghost mode unlocks after ${GHOST_MODE_MIN_ACCOUNT_AGE_DAYS} days` : 'Ghost mode'}
+            >
+              <Ghost size={22} />
+            </button>
+            <button
+              onClick={openOwnProfile}
+              className="w-8 h-8 rounded-full overflow-hidden border border-border flex items-center justify-center font-bold text-sm bg-muted hover:opacity-90 transition-opacity"
+            >
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold">{user?.name?.[0] || 'U'}</span>
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -831,193 +820,68 @@ export default function App() {
       )}
 
       {/* Main Content */}
-      <main className="mx-auto max-w-2xl px-6 py-6">
+      <main className="mx-auto max-w-lg px-0 py-0">
         {activeTab === 'home' && (
-          <div className="space-y-6">
-            <FriendlyCard className="space-y-6 border border-primary/15 bg-gradient-to-br from-background via-background to-primary/10 shadow-[0_28px_80px_-40px_rgba(15,23,42,0.65)]">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-primary shadow-[0_12px_30px_-24px_rgba(15,23,42,0.8)]">
-                    <Sparkles size={14} />
-                    Campus Hub
-                  </div>
-                  <div className="space-y-2">
-                    <h2 className="text-3xl font-bold tracking-[-0.04em]">
-                      {homeSection === 'feed'
-                        ? 'Campus feed'
-                        : homeSection === 'groups'
-                          ? 'Student groups'
-                          : homeSection === 'events'
-                            ? 'Events board'
-                            : 'Academic updates'}
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                      {homeSection === 'feed'
-                        ? 'Share updates, announcements, and quick posts in one place.'
-                        : homeSection === 'groups'
-                          ? 'Join community spaces and post directly into the group conversations you care about.'
-                          : homeSection === 'events'
-                            ? 'Students can request events with title, photo, time, and place for admin approval.'
-                            : 'Admins can publish official academic news, notices, and college updates here.'}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <div className="rounded-2xl border border-white/40 bg-background/75 px-3 py-2 text-xs shadow-sm backdrop-blur">
-                      <span className="block font-semibold text-foreground">{visiblePosts.length}</span>
-                      <span className="text-muted-foreground">Visible posts</span>
-                    </div>
-                    <div className="rounded-2xl border border-white/40 bg-background/75 px-3 py-2 text-xs shadow-sm backdrop-blur">
-                      <span className="block font-semibold text-foreground">{joinedGroups.length}</span>
-                      <span className="text-muted-foreground">Joined groups</span>
-                    </div>
-                    <div className="rounded-2xl border border-white/40 bg-background/75 px-3 py-2 text-xs shadow-sm backdrop-blur">
-                      <span className="block font-semibold text-foreground">{storyGroups.length}</span>
-                      <span className="text-muted-foreground">Story circles</span>
-                    </div>
-                  </div>
-                </div>
+          <div className="space-y-0">
+            {/* Section tabs — compact Instagram-style tab bar */}
+            <div className="flex items-center border-b border-border bg-card sticky top-[57px] z-30 px-4">
+              {[
+                { id: 'feed', label: 'Feed', icon: Home },
+                { id: 'groups', label: 'Groups', icon: Users },
+                { id: 'events', label: 'Events', icon: CalendarDays },
+                { id: 'academics', label: 'Academics', icon: GraduationCap },
+              ].map((section) => (
                 <button
-                  onClick={openCreateMenu}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-[0_24px_45px_-24px_rgba(15,23,42,0.95)] transition-all duration-300 hover:-translate-y-0.5 hover:opacity-95"
-                  disabled={homeSection === 'academics' && user?.role !== 'admin'}
+                  key={section.id}
+                  onClick={() => {
+                    setHomeSection(section.id as CommunitySection);
+                    setShowCreatePost(false);
+                    setComposerNotice(null);
+                  }}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-3 text-xs font-semibold border-b-2 transition-colors',
+                    homeSection === section.id
+                      ? 'border-foreground text-foreground'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  )}
                 >
-                  <Plus size={18} />
-                  Create
+                  <section.icon size={13} />
+                  {section.label}
                 </button>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: 'feed', label: 'Feed', icon: Home },
-                  { id: 'groups', label: 'Groups', icon: Users },
-                  { id: 'events', label: 'Events', icon: CalendarDays },
-                  { id: 'academics', label: 'Academics', icon: GraduationCap },
-                ].map((section) => (
-                  <button
-                    key={section.id}
-                    onClick={() => {
-                      setHomeSection(section.id as CommunitySection);
-                      setShowCreatePost(false);
-                      setComposerNotice(null);
-                    }}
-                    className={cn(
-                      'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-300',
-                      homeSection === section.id
-                        ? 'border-primary bg-primary text-primary-foreground shadow-[0_16px_35px_-20px_rgba(15,23,42,0.95)]'
-                        : 'border-white/40 bg-background/70 text-muted-foreground hover:-translate-y-0.5 hover:text-foreground'
-                    )}
-                  >
-                    <section.icon size={16} />
-                    {section.label}
-                  </button>
-                ))}
-              </div>
-
-              {homeSection === 'groups' && (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setSelectedGroupId('all')}
-                      className={cn(
-                        'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
-                        selectedGroupId === 'all' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'
-                      )}
-                    >
-                      All groups
-                    </button>
-                    {joinedGroups.map((groupId) => (
-                      <button
-                        key={groupId}
-                        onClick={() => setSelectedGroupId(groupId)}
-                        className={cn(
-                          'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
-                          selectedGroupId === groupId ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'
-                        )}
-                      >
-                        {getGroupName(groupId)}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {COMMUNITY_GROUPS.map((group) => {
-                      const joined = joinedGroups.includes(group.id);
-                      return (
-                        <FriendlyCard
-                          key={group.id}
-                          className={cn('space-y-3 border border-border/80 bg-gradient-to-br', group.accent)}
-                        >
-                          <div className="space-y-1">
-                            <div className="flex items-center justify-between gap-3">
-                              <p className="font-bold">{group.name}</p>
-                              <span className="rounded-full bg-background/80 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                                {group.membersLabel}
-                              </span>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{group.summary}</p>
-                          </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <button
-                              onClick={() => {
-                                toggleGroupMembership(group.id);
-                                setComposerNotice(null);
-                              }}
-                              className={cn(
-                                'rounded-lg px-3 py-2 text-sm font-semibold transition-colors',
-                                joined ? 'bg-foreground text-background' : 'bg-primary text-primary-foreground'
-                              )}
-                            >
-                              {joined ? 'Leave group' : 'Join group'}
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedGroupId(group.id);
-                                setHomeSection('groups');
-                              }}
-                              className="text-xs font-semibold text-muted-foreground"
-                            >
-                              Open
-                            </button>
-                          </div>
-                        </FriendlyCard>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </FriendlyCard>
+              ))}
+              <button
+                onClick={openCreateMenu}
+                className="ml-auto flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 my-1.5"
+                disabled={homeSection === 'academics' && user?.role !== 'admin'}
+              >
+                <Plus size={14} />
+                Create
+              </button>
+            </div>
 
             {composerNotice && (
-              <FriendlyCard className="border border-emerald-500/20 bg-emerald-500/10 text-sm text-emerald-700 dark:text-emerald-300">
+              <div className="mx-4 my-2 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-800 dark:text-emerald-300">
                 {composerNotice}
-              </FriendlyCard>
+              </div>
             )}
 
             {homeSection === 'feed' && (
-              <FriendlyCard className="space-y-4 overflow-hidden border border-white/35 bg-card/78">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <h3 className="text-base font-bold">Stories</h3>
-                    <p className="text-sm text-muted-foreground">Campus updates that disappear in 24 hours.</p>
-                  </div>
+              <div className="bg-card border-b border-border">
+                <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">Stories</p>
                   <button
                     type="button"
                     onClick={startCreateStory}
-                    className="inline-flex items-center gap-2 rounded-full border border-white/35 bg-background/80 px-3 py-2 text-xs font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:bg-muted"
+                    className="text-xs font-semibold text-primary"
                   >
-                    <Plus size={14} />
-                    Add story
+                    + Add
                   </button>
                 </div>
 
-                <div className="-mx-2 flex gap-4 overflow-x-auto px-2 pb-1">
+                <div className="flex gap-3 overflow-x-auto px-4 py-3 no-scrollbar">
                   {storyTrayGroups.map((group) => {
                     const isOwnGroup = group.user._id === user?.id;
                     const hasStories = group.stories.length > 0;
-                    const ringClass = hasStories
-                      ? group.hasViewed
-                        ? 'from-white/30 to-white/10'
-                        : 'from-primary via-accent to-primary'
-                      : 'from-white/25 to-white/10';
 
                     return (
                       <button
@@ -1030,42 +894,115 @@ export default function App() {
                             startCreateStory();
                           }
                         }}
-                        className="group flex w-[5.5rem] shrink-0 flex-col items-center gap-2 text-center"
+                        className="group flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 text-center"
                       >
                         <div className={cn(
-                          'relative rounded-full bg-gradient-to-br p-[3px] shadow-[0_20px_40px_-28px_rgba(15,23,42,0.95)] transition-transform duration-300 group-hover:scale-[1.03]',
-                          ringClass
+                          'p-[2.5px] rounded-full',
+                          hasStories
+                            ? group.hasViewed
+                              ? 'story-ring-viewed'
+                              : 'story-ring'
+                            : 'bg-border'
                         )}>
-                          <div className="flex h-[4.65rem] w-[4.65rem] items-center justify-center overflow-hidden rounded-full bg-background ring-2 ring-background">
+                          <div className="flex h-[3.8rem] w-[3.8rem] items-center justify-center overflow-hidden rounded-full bg-card ring-2 ring-card relative">
                             {group.user.avatarUrl ? (
                               <img src={group.user.avatarUrl} alt={group.user.name} className="h-full w-full object-cover" />
                             ) : (
-                              <span className="text-lg font-bold text-primary">{group.user.name?.[0] || 'U'}</span>
+                              <span className="text-base font-bold text-primary">{group.user.name?.[0] || 'U'}</span>
+                            )}
+                            {isOwnGroup && !hasStories && (
+                              <div className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground">
+                                <Plus size={11} />
+                              </div>
                             )}
                           </div>
-                          {isOwnGroup && (
-                            <div className="absolute bottom-0 right-0 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground shadow-lg">
-                              <Plus size={14} />
-                            </div>
-                          )}
                         </div>
-                        <div className="space-y-0.5">
-                          <p className="truncate text-sm font-semibold">{isOwnGroup ? 'Your story' : `@${group.user.username || 'user'}`}</p>
-                          <p className="truncate text-[11px] text-muted-foreground">
-                            {hasStories ? `${group.stories.length} ${group.stories.length === 1 ? 'story' : 'stories'}` : 'Tap to add'}
-                          </p>
-                        </div>
+                        <p className="truncate w-full text-[10px] font-semibold text-foreground">
+                          {isOwnGroup ? 'Your story' : `@${group.user.username || 'user'}`}
+                        </p>
                       </button>
                     );
                   })}
                 </div>
-              </FriendlyCard>
+              </div>
+            )}
+
+            {/* Groups filter bar */}
+            {homeSection === 'groups' && (
+              <div className="space-y-0">
+                <div className="flex flex-wrap gap-2 px-4 py-3 border-b border-border bg-card">
+                  <button
+                    onClick={() => setSelectedGroupId('all')}
+                    className={cn(
+                      'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                      selectedGroupId === 'all' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    All groups
+                  </button>
+                  {joinedGroups.map((groupId) => (
+                    <button
+                      key={groupId}
+                      onClick={() => setSelectedGroupId(groupId)}
+                      className={cn(
+                        'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
+                        selectedGroupId === groupId ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'
+                      )}
+                    >
+                      {getGroupName(groupId)}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid gap-px bg-border">
+                  {COMMUNITY_GROUPS.map((group) => {
+                    const joined = joinedGroups.includes(group.id);
+                    return (
+                      <div
+                        key={group.id}
+                        className="flex items-center gap-3 bg-card px-4 py-3"
+                      >
+                        <div className="h-11 w-11 rounded-full bg-muted flex items-center justify-center text-lg font-bold text-primary shrink-0">
+                          {group.name[0]}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm truncate">{group.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{group.summary}</p>
+                          <p className="text-[10px] text-muted-foreground">{group.membersLabel}</p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => {
+                              setSelectedGroupId(group.id);
+                            }}
+                            className="text-xs font-semibold text-primary"
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => {
+                              toggleGroupMembership(group.id);
+                              setComposerNotice(null);
+                            }}
+                            className={cn(
+                              'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
+                              joined
+                                ? 'bg-muted text-foreground'
+                                : 'bg-primary text-primary-foreground'
+                            )}
+                          >
+                            {joined ? 'Joined' : 'Join'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
             {showCreatePost && (
-              <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-                  <h2 className="text-lg font-bold">Create</h2>
+              <div className="fixed inset-0 z-50 bg-background flex flex-col">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                   <button
                     type="button"
                     onClick={() => setShowCreatePost(false)}
@@ -1074,8 +1011,10 @@ export default function App() {
                   >
                     <X size={20} />
                   </button>
+                  <h2 className="text-sm font-bold">New Post</h2>
+                  <div className="w-9" />
                 </div>
-                <div className="flex-1 overflow-y-auto px-6 py-6 max-w-2xl w-full mx-auto">
+                <div className="flex-1 overflow-y-auto px-4 py-4 max-w-lg w-full mx-auto">
                   <Suspense fallback={<LazyScreenFallback label="Loading composer..." />}>
                     <CreatePost
                       user={user}
@@ -1103,53 +1042,50 @@ export default function App() {
             )}
 
             {homeSection === 'academics' && user?.role !== 'admin' && (
-              <FriendlyCard className="border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
+              <div className="px-4 py-3 text-sm text-muted-foreground border-b border-border">
                 Only admins can create academic news, but everyone can read the published updates here.
-              </FriendlyCard>
+              </div>
             )}
 
             {homeSection === 'groups' && joinedGroups.length === 0 && (
-              <FriendlyCard className="border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
+              <div className="px-4 py-3 text-sm text-muted-foreground border-b border-border">
                 Join a group above to start posting in group conversations.
-              </FriendlyCard>
+              </div>
             )}
 
             {homeSection === 'feed' && suggestedUsers.length > 0 && (
-              <FriendlyCard className="space-y-4 border border-white/35 bg-card/74">
-                <div>
-                  <h3 className="text-base font-bold">Suggested for you</h3>
-                  <p className="text-sm text-muted-foreground">People you may know from mutual connections.</p>
+              <div className="bg-card border-b border-border">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">Suggested for you</p>
+                  <button className="text-xs font-semibold text-foreground">See all</button>
                 </div>
-                <div className="grid gap-3 md:grid-cols-2">
+                <div className="flex gap-3 overflow-x-auto px-4 pb-4 no-scrollbar">
                   {suggestedUsers.map((suggestion) => (
-                    <div key={suggestion.id} className="flex items-center gap-3 rounded-[22px] border border-white/35 bg-background/78 px-3 py-3 shadow-sm">
+                    <div key={suggestion.id} className="flex w-36 shrink-0 flex-col items-center gap-2 rounded-xl border border-border bg-background p-3 text-center">
                       <button
                         type="button"
                         onClick={() => openProfile(suggestion.id)}
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        className="flex flex-col items-center gap-1.5"
                       >
-                        <div className="h-12 w-12 rounded-full overflow-hidden bg-muted flex items-center justify-center font-bold">
+                        <div className="h-14 w-14 rounded-full overflow-hidden bg-muted flex items-center justify-center font-bold">
                           {suggestion.avatarUrl ? (
                             <img src={suggestion.avatarUrl} alt={suggestion.name} className="h-full w-full object-cover" />
                           ) : (
-                            suggestion.name?.[0] || 'U'
+                            <span className="text-lg font-bold text-primary">{suggestion.name?.[0] || 'U'}</span>
                           )}
                         </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold">{suggestion.username}</p>
-                          <p className="truncate text-xs text-muted-foreground">{suggestion.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {suggestion.mutualCount > 0
-                              ? `${suggestion.mutualCount} mutual connection${suggestion.mutualCount === 1 ? '' : 's'}`
-                              : 'New on campus'}
-                          </p>
-                        </div>
+                        <p className="text-xs font-semibold truncate w-full">{suggestion.username}</p>
+                        <p className="text-[10px] text-muted-foreground truncate w-full">
+                          {suggestion.mutualCount > 0
+                            ? `${suggestion.mutualCount} mutual`
+                            : 'New on campus'}
+                        </p>
                       </button>
                       <FollowButton
                         userId={user?.id}
                         targetId={suggestion.id}
                         initialIsFollowing={false}
-                        className="shrink-0 rounded-lg px-3 py-2 text-xs"
+                        className="w-full rounded-lg px-2 py-1.5 text-xs font-semibold"
                         onChange={(isFollowing) => {
                           if (isFollowing) {
                             setSuggestedUsers((prev) => prev.filter((item) => item.id !== suggestion.id));
@@ -1159,41 +1095,58 @@ export default function App() {
                     </div>
                   ))}
                 </div>
-              </FriendlyCard>
+              </div>
             )}
 
             {visiblePosts.length > 0 ? visiblePosts.map((post) => {
               const contentType = normalizeContentType(post.contentType);
               return (
-              <FriendlyCard key={post._id} className="overflow-hidden border border-white/35 bg-background/82 p-0 shadow-[0_26px_65px_-42px_rgba(15,23,42,0.82)]">
-                <div className="flex items-center justify-between p-4">
+              <article key={post._id} className="bg-card border-b border-border">
+                {/* Post header */}
+                <div className="flex items-center justify-between px-4 py-3">
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => !post.isAnonymous && openProfile(post.userId?._id)}
                       disabled={post.isAnonymous || !post.userId?._id}
-                      className="flex items-center gap-3 text-left disabled:cursor-default group"
+                      className="flex items-center gap-2.5 text-left disabled:cursor-default"
                     >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-muted ring-1 ring-white/40">
+                      <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-border bg-muted flex items-center justify-center">
                         {post.isAnonymous ? (
-                          <Ghost size={16} className="text-muted-foreground" />
+                          <Ghost size={15} className="text-muted-foreground" />
                         ) : post.userId?.avatarUrl ? (
                           <img src={post.userId.avatarUrl} alt={post.userId.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         ) : (
-                          <span className="text-sm font-bold text-muted-foreground">{post.userId?.name?.[0] || 'U'}</span>
+                          <span className="text-xs font-bold text-primary">{post.userId?.name?.[0] || 'U'}</span>
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-semibold group-hover:text-primary transition-colors">{post.isAnonymous ? 'Ghost' : (post.userId?.name || 'User')}</p>
-                        <p className="text-[11px] text-muted-foreground">{new Date(post.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                        <p className="text-sm font-semibold leading-tight">{post.isAnonymous ? 'Ghost' : (post.userId?.name || 'User')}</p>
+                        {post.userId?.username && !post.isAnonymous && (
+                          <p className="text-[11px] text-muted-foreground leading-tight">@{post.userId.username}</p>
+                        )}
                       </div>
                     </button>
+                    {contentType && contentType !== 'feed' && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary capitalize">{contentType}</span>
+                    )}
                   </div>
+                  <PostOptions
+                    postId={post._id}
+                    userId={user?.id}
+                    postOwnerId={post.userId?._id || post.userId}
+                    initialContent={post.content || ''}
+                    initialMediaUrls={post.mediaUrls || (post.mediaUrl ? [post.mediaUrl] : [])}
+                    onDelete={fetchPosts}
+                    onEdit={fetchPosts}
+                  />
                 </div>
+
+                {/* Media */}
                 {post.mediaUrls && post.mediaUrls.length > 0 ? (
                   <div
                     onClick={() => !post.isAnonymous && openProfile(post.userId?._id, { selectedPost: post })}
-                    className={cn('block w-full text-left', !post.isAnonymous && post.userId?._id ? 'cursor-pointer' : '')}
+                    className={cn(!post.isAnonymous && post.userId?._id ? 'cursor-pointer' : '')}
                   >
                     <ImageCarousel
                       images={post.mediaUrls}
@@ -1204,7 +1157,7 @@ export default function App() {
                 ) : post.mediaUrl ? (
                   <div
                     onClick={() => !post.isAnonymous && openProfile(post.userId?._id, { selectedPost: post })}
-                    className={cn('block w-full text-left', !post.isAnonymous && post.userId?._id ? 'cursor-pointer' : '')}
+                    className={cn(!post.isAnonymous && post.userId?._id ? 'cursor-pointer' : '')}
                   >
                     <ImageCarousel
                       images={[post.mediaUrl]}
@@ -1213,37 +1166,64 @@ export default function App() {
                     />
                   </div>
                 ) : null}
-                <div className="space-y-3 px-4 py-4">
-                  <SocialText
-                    text={post.content}
-                    className="text-sm text-foreground leading-relaxed whitespace-pre-wrap"
-                    onHashtagClick={openHashtagSearch}
-                    onMentionClick={(username) => {
-                      const match = suggestedUsers.find((suggestion) => suggestion.username?.toLowerCase() === username.toLowerCase());
-                      if (match?.id) {
-                        openProfile(match.id);
-                      } else {
-                        setSearchInitialQuery(`@${username}`);
-                        setShowSearch(true);
-                      }
-                    }}
-                  />
-                  <PostActions
-                    postId={post._id}
-                    userId={user?.id}
-                    initialLikes={post.likesCount}
-                    initialLiked={post.isLiked}
-                    initialBookmarked={post.isBookmarked}
-                    initialComments={post.commentsCount}
-                    initialShares={post.sharesCount}
-                    onComment={() => setCommentPostId(post._id)}
-                  />
+
+                {/* Actions row */}
+                <PostActions
+                  postId={post._id}
+                  userId={user?.id}
+                  initialLikes={post.likesCount}
+                  initialLiked={post.isLiked}
+                  initialBookmarked={post.isBookmarked}
+                  initialComments={post.commentsCount}
+                  initialShares={post.sharesCount}
+                  onComment={() => setCommentPostId(post._id)}
+                />
+
+                {/* Likes count */}
+                {post.likesCount > 0 && (
+                  <p className="px-4 pb-1 text-xs font-semibold">{post.likesCount.toLocaleString()} {post.likesCount === 1 ? 'like' : 'likes'}</p>
+                )}
+
+                {/* Caption */}
+                <div className="px-4 pb-3">
+                  {post.content ? (
+                    <div className="text-sm leading-relaxed">
+                      <span className="font-semibold mr-1.5">
+                        {post.isAnonymous ? 'Ghost' : (post.userId?.username || post.userId?.name || 'User')}
+                      </span>
+                      <SocialText
+                        text={post.content}
+                        className="inline text-foreground whitespace-pre-wrap"
+                        onHashtagClick={openHashtagSearch}
+                        onMentionClick={(username) => {
+                          const match = suggestedUsers.find((suggestion) => suggestion.username?.toLowerCase() === username.toLowerCase());
+                          if (match?.id) {
+                            openProfile(match.id);
+                          } else {
+                            setSearchInitialQuery(`@${username}`);
+                            setShowSearch(true);
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                  {post.commentsCount > 0 && (
+                    <button
+                      onClick={() => setCommentPostId(post._id)}
+                      className="mt-1 block text-xs text-muted-foreground"
+                    >
+                      View all {post.commentsCount} comment{post.commentsCount === 1 ? '' : 's'}
+                    </button>
+                  )}
+                  <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
+                    {new Date(post.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}
+                  </p>
                 </div>
-              </FriendlyCard>
+              </article>
             );
             }) : (
-              <div className="text-center py-20 text-muted-foreground">
-                <p>
+              <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
+                <p className="text-sm">
                   {homeSection === 'groups'
                     ? 'No group posts yet. Share the first update with your community.'
                     : homeSection === 'events'
@@ -1258,32 +1238,31 @@ export default function App() {
         )}
 
         {activeTab === 'chat' && (
-          <div className="space-y-6">
-            <FriendlyCard className="border border-primary/10 bg-gradient-to-br from-background via-background to-accent/10">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-muted-foreground">Messaging</p>
-              <h2 className="text-3xl font-bold tracking-[-0.04em]">Direct Messages</h2>
-              <p className="text-sm text-muted-foreground">Your active conversations and quick message access live here.</p>
-            </FriendlyCard>
-            <div className="space-y-2">
+          <div className="space-y-0">
+            <div className="border-b border-border bg-card px-4 py-4">
+              <h2 className="text-lg font-bold">Messages</h2>
+            </div>
+            <div className="divide-y divide-border">
               {chats.length > 0 ? chats.map((chat) => (
-                <FriendlyCard
+                <button
                   key={chat.user.id}
+                  type="button"
                   onClick={() => setActiveChat(chat.user)}
-                  className="flex cursor-pointer items-center gap-4 border-white/35 bg-background/80 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:bg-muted/40"
+                  className="flex w-full items-center gap-3 bg-card px-4 py-3 text-left hover:bg-muted/50 transition-colors"
                 >
-                  <div className="w-12 h-12 rounded-full bg-muted shrink-0 flex items-center justify-center overflow-hidden font-bold text-foreground">
+                  <div className="w-12 h-12 rounded-full bg-muted shrink-0 flex items-center justify-center overflow-hidden font-bold text-foreground border border-border">
                     {chat.user.avatarUrl ? (
                       <img src={chat.user.avatarUrl} alt={chat.user.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
                     ) : (
-                      chat.user.name?.[0] || 'U'
+                      <span className="text-sm font-bold text-primary">{chat.user.name?.[0] || 'U'}</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-bold truncate">{chat.user.name}</p>
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold truncate">{chat.user.name}</p>
+                      <div className="flex items-center gap-1.5 shrink-0">
                         {chat.lastMessage.unreadCount > 0 && (
-                          <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">
+                          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
                             {chat.lastMessage.unreadCount}
                           </span>
                         )}
@@ -1292,16 +1271,16 @@ export default function App() {
                         </p>
                       </div>
                     </div>
-                    <p className={cn('text-xs truncate', chat.lastMessage.unreadCount > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground')}>
+                    <p className={cn('text-xs truncate mt-0.5', chat.lastMessage.unreadCount > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground')}>
                       {chat.lastMessage.isMine ? 'You: ' : ''}
                       {chat.lastMessage.text}
                     </p>
                   </div>
-                </FriendlyCard>
+                </button>
               )) : (
-                <div className="text-center py-20 text-muted-foreground">
-                  <p>No conversations yet.</p>
-                  <p className="text-sm mt-2">Follow people and start chatting!</p>
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
+                  <p className="text-sm">No conversations yet.</p>
+                  <p className="text-xs">Follow people and start chatting!</p>
                 </div>
               )}
             </div>
@@ -1341,99 +1320,85 @@ export default function App() {
         )}
 
         {activeTab === 'settings' && (
-          <div className="space-y-6">
-            <FriendlyCard className="overflow-hidden border border-primary/10 bg-gradient-to-br from-background via-background to-accent/10">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                    <Settings size={14} />
-                    Control Center
-                  </div>
-                  <div>
-                    <h2 className="text-3xl font-bold tracking-[-0.04em]">Settings</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Manage your account, privacy, Telegram alerts, and support access from one place.
-                    </p>
-                  </div>
-                </div>
-                <div className="rounded-3xl border border-white/40 bg-background/70 px-4 py-3 text-sm shadow-sm backdrop-blur">
-                  <p className="font-semibold">{user?.name || 'User'}</p>
-                  <p className="text-xs text-muted-foreground">@{user?.username || 'username'}</p>
-                </div>
+          <div className="space-y-0">
+            {/* Settings header */}
+            <div className="flex items-center gap-3 px-4 py-4 border-b border-border bg-card">
+              <div className="w-16 h-16 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
+                ) : (
+                  <span className="text-2xl font-bold text-primary">{user?.name?.[0] || 'U'}</span>
+                )}
               </div>
-            </FriendlyCard>
+              <div>
+                <p className="font-bold text-base">{user?.name || 'User'}</p>
+                <p className="text-sm text-muted-foreground">@{user?.username || 'username'}</p>
+              </div>
+            </div>
 
             {settingsNotice && (
-              <FriendlyCard
-                className={cn(
-                  'border text-sm',
-                  settingsNotice.type === 'success'
-                    ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                    : 'border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300'
-                )}
-              >
+              <div className={cn(
+                'mx-4 my-3 rounded-lg px-4 py-3 text-sm border',
+                settingsNotice.type === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-800 dark:text-emerald-300'
+                  : 'border-red-200 bg-red-50 text-red-700 dark:bg-red-950/20 dark:border-red-800 dark:text-red-300'
+              )}>
                 {settingsNotice.message}
-              </FriendlyCard>
+              </div>
             )}
 
             {user?.role === 'admin' && (
-              <div className="space-y-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Admin</h3>
-                <FriendlyCard
-                  onClick={() => setShowAdminDashboard(true)}
-                  className="flex items-center gap-4 p-4 cursor-pointer hover:bg-muted/50 transition-all"
-                >
-                  <div className="p-3 bg-primary/20 rounded-lg">
-                    <Shield size={20} className="text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold">Admin Dashboard</p>
-                    <p className="text-xs text-muted-foreground">Manage users and posts</p>
-                  </div>
-                  <ChevronRight size={16} className="text-muted-foreground" />
-                </FriendlyCard>
+              <div>
+                <p className="px-4 pt-5 pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Admin</p>
+                <div className="divide-y divide-border border-t border-b border-border">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminDashboard(true)}
+                    className="flex w-full items-center gap-4 bg-card px-4 py-3 hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Shield size={18} className="text-primary" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-semibold">Admin Dashboard</p>
+                      <p className="text-xs text-muted-foreground">Manage users and posts</p>
+                    </div>
+                    <ChevronRight size={16} className="text-muted-foreground" />
+                  </button>
+                </div>
               </div>
             )}
 
             {/* Account Section */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Account</h3>
-              <FriendlyCard className="divide-y divide-border">
+            <div>
+              <p className="px-4 pt-5 pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Account</p>
+              <div className="divide-y divide-border border-t border-b border-border">
                 <button
                   type="button"
                   onClick={openOwnProfile}
-                  className="flex w-full items-center gap-4 p-4 text-left cursor-pointer hover:bg-muted/50 transition-all"
+                  className="flex w-full items-center gap-3 bg-card px-4 py-3 text-left hover:bg-muted/50 transition-colors"
                 >
-                  <div className="w-14 h-14 rounded-full bg-muted border border-border flex items-center justify-center text-xl font-bold overflow-hidden">
-                    {user?.avatarUrl ? (
-                      <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" loading="lazy" decoding="async" />
-                    ) : (
-                      <span className="text-primary">{user?.name?.[0] || 'U'}</span>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-bold">{user?.name || 'User'}</p>
-                    <p className="text-sm text-muted-foreground">@{user?.username || 'username'}</p>
-                  </div>
+                  <User size={18} className="text-muted-foreground" />
+                  <span className="text-sm flex-1">View Profile</span>
                   <ChevronRight size={16} className="text-muted-foreground" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowEditProfile(true)}
-                  className="flex w-full items-center gap-3 p-4 text-left cursor-pointer hover:bg-muted/50 transition-all"
+                  className="flex w-full items-center gap-3 bg-card px-4 py-3 text-left hover:bg-muted/50 transition-colors"
                 >
-                  <UserCog size={20} className="text-muted-foreground" />
+                  <UserCog size={18} className="text-muted-foreground" />
                   <span className="text-sm flex-1">Edit Profile</span>
                   <ChevronRight size={16} className="text-muted-foreground" />
                 </button>
-              </FriendlyCard>
+              </div>
             </div>
 
             {/* Privacy & Security */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Privacy & Security</h3>
-              <FriendlyCard className="space-y-0 divide-y divide-border">
-                <div className="flex items-center justify-between p-4">
+            <div>
+              <p className="px-4 pt-5 pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Privacy & Security</p>
+              <div className="divide-y divide-border border-t border-b border-border">
+                <div className="flex items-center justify-between gap-3 bg-card px-4 py-3">
                   <div className="flex items-center gap-3">
                     <Eye size={18} className="text-muted-foreground" />
                     <div>
@@ -1441,7 +1406,7 @@ export default function App() {
                       <p className="text-[10px] text-muted-foreground">Post as Ghost</p>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={toggleGhostMode}
                     className={cn(
                       "w-12 h-6 rounded-full relative transition-all",
@@ -1455,7 +1420,7 @@ export default function App() {
                     )} />
                   </button>
                 </div>
-                <div className="flex items-center justify-between p-4">
+                <div className="flex items-center justify-between gap-3 bg-card px-4 py-3">
                   <div className="flex items-center gap-3">
                     <Lock size={18} className="text-muted-foreground" />
                     <div>
@@ -1480,14 +1445,24 @@ export default function App() {
                     )} />
                   </button>
                 </div>
-              </FriendlyCard>
+                <div className="flex items-center justify-between gap-3 bg-card px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <Sparkles size={18} className="text-muted-foreground" />
+                    <div>
+                      <p className="text-sm font-medium">Theme</p>
+                      <p className="text-[10px] text-muted-foreground">Light or dark mode</p>
+                    </div>
+                  </div>
+                  <ThemeSwitch />
+                </div>
+              </div>
             </div>
 
             {/* Notifications */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Notifications</h3>
-              <FriendlyCard className="space-y-0 divide-y divide-border">
-                <div className="flex items-center justify-between p-4">
+            <div>
+              <p className="px-4 pt-5 pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Notifications</p>
+              <div className="divide-y divide-border border-t border-b border-border">
+                <div className="flex items-center justify-between gap-3 bg-card px-4 py-3">
                   <div className="flex items-center gap-3">
                     <Bell size={18} className="text-muted-foreground" />
                     <div>
@@ -1509,7 +1484,7 @@ export default function App() {
                   </button>
                 </div>
                 {!user?.telegramChatId && (
-                  <div className="p-4 space-y-3 bg-muted/40 border-t border-border">
+                  <div className="p-4 space-y-3 bg-muted/40">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="text-sm font-semibold">Connect Telegram to receive alerts</p>
@@ -1528,7 +1503,7 @@ export default function App() {
                       </button>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="flex-1 text-center font-mono text-lg px-4 py-3 rounded-xl border border-dashed border-border bg-background/60 text-primary tracking-widest">
+                      <div className="flex-1 text-center font-mono text-lg px-4 py-3 rounded-xl border border-dashed border-border bg-background text-primary tracking-widest">
                         {telegramAuthCode || '------'}
                       </div>
                       <button
@@ -1569,55 +1544,45 @@ export default function App() {
                     )}
                   </div>
                 )}
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold">Detailed notification settings</p>
-                      <p className="text-xs text-muted-foreground">
-                        Choose which updates the Telegram bot should surface for your account.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    {notificationSettingLabels.map((setting) => (
-                      <div
-                        key={setting.key}
-                        className="flex items-center justify-between gap-4 rounded-2xl border border-border px-4 py-3 transition-colors"
-                      >
-                        <div>
-                          <p className="text-sm font-medium">{setting.title}</p>
-                          <p className="text-xs text-muted-foreground">{setting.description}</p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleNotificationSettingToggle(setting.key)}
-                          className={cn(
-                            'w-12 h-6 rounded-full relative transition-all',
-                            notificationSettings[setting.key] ? 'bg-accent' : 'bg-muted'
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              'absolute top-1 w-4 h-4 bg-white rounded-full transition-all',
-                              notificationSettings[setting.key] ? 'right-1' : 'left-1'
-                            )}
-                          />
-                        </button>
+                <div className="divide-y divide-border">
+                  {notificationSettingLabels.map((setting) => (
+                    <div
+                      key={setting.key}
+                      className="flex items-center justify-between gap-4 bg-card px-4 py-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{setting.title}</p>
+                        <p className="text-xs text-muted-foreground">{setting.description}</p>
                       </div>
-                    ))}
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => handleNotificationSettingToggle(setting.key)}
+                        className={cn(
+                          'w-12 h-6 rounded-full relative transition-all shrink-0',
+                          notificationSettings[setting.key] ? 'bg-primary' : 'bg-muted'
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            'absolute top-1 w-4 h-4 bg-white rounded-full transition-all',
+                            notificationSettings[setting.key] ? 'right-1' : 'left-1'
+                          )}
+                        />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              </FriendlyCard>
+              </div>
             </div>
 
             {/* Help & Support */}
-            <div className="space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">Help & Support</h3>
-              <FriendlyCard className="space-y-0 divide-y divide-border">
+            <div>
+              <p className="px-4 pt-5 pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Help & Support</p>
+              <div className="divide-y divide-border border-t border-b border-border">
                 <button
                   type="button"
                   onClick={() => openSupportLink('bug')}
-                  className="flex w-full items-center gap-3 p-4 text-left cursor-pointer hover:bg-muted/50 transition-all"
+                  className="flex w-full items-center gap-3 bg-card px-4 py-3 text-left hover:bg-muted/50 transition-colors"
                 >
                   <Flag size={18} className="text-muted-foreground" />
                   <span className="text-sm flex-1">Report a Bug</span>
@@ -1626,21 +1591,21 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => openSupportLink('feature')}
-                  className="flex w-full items-center gap-3 p-4 text-left cursor-pointer hover:bg-muted/50 transition-all"
+                  className="flex w-full items-center gap-3 bg-card px-4 py-3 text-left hover:bg-muted/50 transition-colors"
                 >
                   <HelpCircle size={18} className="text-muted-foreground" />
                   <span className="text-sm flex-1">Suggest a Feature</span>
                   <ChevronRight size={16} className="text-muted-foreground" />
                 </button>
-              </FriendlyCard>
+              </div>
             </div>
 
             {/* Logout */}
-            <div className="pt-2">
-              <button 
+            <div className="px-4 py-6">
+              <button
                 type="button"
                 onClick={handleLogout}
-                className="w-full py-4 bg-red-500/10 border border-red-500/20 text-red-400 font-bold rounded-2xl flex items-center justify-center gap-2 transition-all active:scale-95"
+                className="w-full py-3 border border-red-200 dark:border-red-900 text-red-500 font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors hover:bg-red-50 dark:hover:bg-red-950/20"
               >
                 <LogOut size={18} />
                 Log Out
@@ -1720,42 +1685,53 @@ export default function App() {
       )}
 
       {showCreateMenu && (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-md" onClick={() => setShowCreateMenu(false)}>
+        <div className="fixed inset-0 z-50 flex items-end bg-black/50" onClick={() => setShowCreateMenu(false)}>
           <div
-            className="w-full rounded-t-[32px] border border-white/30 bg-background/92 p-5 pb-8 shadow-[0_-24px_80px_-36px_rgba(15,23,42,0.85)] backdrop-blur-2xl"
+            className="w-full rounded-t-2xl border-t border-border bg-card pb-8"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-muted-foreground">Quick Actions</p>
-                <p className="text-xl font-bold tracking-[-0.04em]">Create</p>
-              </div>
+            {/* Handle bar */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-muted-foreground/30" />
+            </div>
+            <div className="flex items-center justify-between px-4 pb-4 pt-2">
+              <p className="text-base font-bold">Create</p>
               <button
                 type="button"
                 onClick={() => setShowCreateMenu(false)}
-                className="rounded-full p-2 transition-colors hover:bg-muted"
+                className="rounded-full p-2 hover:bg-muted transition-colors"
                 aria-label="Close"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="grid gap-3">
+            <div className="divide-y divide-border border-t border-border">
               <button
                 type="button"
                 onClick={startCreatePost}
-                className="w-full rounded-[24px] border border-white/40 bg-gradient-to-br from-background to-primary/10 px-4 py-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_-30px_rgba(15,23,42,0.9)]"
+                className="flex w-full items-center gap-4 px-4 py-4 text-left hover:bg-muted/50 transition-colors"
               >
-                <p className="font-semibold">Post</p>
-                <p className="text-xs text-muted-foreground">Share a photo or text post</p>
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Plus size={20} className="text-primary" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Post</p>
+                  <p className="text-xs text-muted-foreground">Share a photo or text post</p>
+                </div>
               </button>
               <button
                 type="button"
                 onClick={startCreateStory}
-                className="w-full rounded-[24px] border border-white/40 bg-gradient-to-br from-background to-accent/10 px-4 py-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_45px_-30px_rgba(15,23,42,0.9)]"
+                className="flex w-full items-center gap-4 px-4 py-4 text-left hover:bg-muted/50 transition-colors"
               >
-                <p className="font-semibold">Story</p>
-                <p className="text-xs text-muted-foreground">Share to your story</p>
+                <div className="w-10 h-10 rounded-full story-ring flex items-center justify-center">
+                  <Plus size={20} className="text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">Story</p>
+                  <p className="text-xs text-muted-foreground">Share to your story</p>
+                </div>
               </button>
             </div>
           </div>
@@ -1766,6 +1742,7 @@ export default function App() {
         <Dock
           items={[
             { icon: Home, label: 'Home', onClick: () => (activeTab === 'home' ? (fetchPosts(), fetchStories()) : setActiveTab('home')) },
+            { icon: Search, label: 'Search', onClick: () => setShowSearch(true) },
             { icon: Plus, label: 'Create', onClick: openCreateMenu },
             { icon: MessageSquare, label: 'Chat', onClick: () => (activeTab === 'chat' ? fetchChats() : setActiveTab('chat')) },
             { icon: User, label: 'Profile', onClick: openOwnProfile },

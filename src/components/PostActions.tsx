@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, Share2, Bookmark } from 'lucide-react';
+import { Heart, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { ShareModal } from './ShareModal';
 import { withAuthHeaders } from '../utils/clientAuth';
+import { cn } from '../lib/utils';
 
 interface PostActionsProps {
   postId: string;
@@ -61,40 +62,43 @@ export function PostActions({
   };
 
   return (
-    <div className="mt-3 flex items-center gap-2">
+    <div className="flex items-center gap-1 px-4 py-2">
+      {/* Left actions */}
       <button
         onClick={handleLike}
-        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all duration-300 ${liked ? 'border-red-500/20 bg-red-500/10 text-red-500 shadow-[0_16px_35px_-24px_rgba(239,68,68,0.75)]' : 'border-border/70 bg-background/80 text-muted-foreground hover:-translate-y-0.5 hover:text-red-500'}`}
+        className="p-2 -ml-2 transition-transform active:scale-90"
         aria-label={liked ? 'Unlike' : 'Like'}
       >
-        <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
-        <span>{likes}</span>
+        <Heart
+          className={cn('w-6 h-6 transition-colors', liked ? 'fill-red-500 text-red-500' : 'text-foreground')}
+        />
       </button>
 
       <button
         onClick={onComment}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/80 px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-300 hover:-translate-y-0.5 hover:text-primary"
+        className="p-2 transition-transform active:scale-90"
         aria-label="Comment"
       >
-        <MessageCircle className="w-5 h-5" />
-        <span>{initialComments}</span>
+        <MessageCircle className="w-6 h-6 text-foreground" />
       </button>
 
       <button
         onClick={() => setShareModalOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background/80 px-3 py-2 text-sm font-medium text-muted-foreground transition-all duration-300 hover:-translate-y-0.5 hover:text-primary"
+        className="p-2 transition-transform active:scale-90"
         aria-label="Share"
       >
-        <Share2 className="w-5 h-5" />
-        <span>{shares}</span>
+        <Send className="w-6 h-6 text-foreground" />
       </button>
 
+      {/* Bookmark pinned right */}
       <button
         onClick={handleBookmark}
-        className={`ml-auto inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-sm font-medium transition-all duration-300 ${bookmarked ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-500 shadow-[0_16px_35px_-24px_rgba(234,179,8,0.75)]' : 'border-border/70 bg-background/80 text-muted-foreground hover:-translate-y-0.5 hover:text-yellow-500'}`}
+        className="ml-auto p-2 -mr-2 transition-transform active:scale-90"
         aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark'}
       >
-        <Bookmark className={`w-5 h-5 ${bookmarked ? 'fill-current' : ''}`} />
+        <Bookmark
+          className={cn('w-6 h-6 transition-colors', bookmarked ? 'fill-foreground text-foreground' : 'text-foreground')}
+        />
       </button>
 
       <ShareModal
