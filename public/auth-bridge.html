@@ -34,6 +34,16 @@
       return;
     }
 
+    if (data.type === 'ddu-auth-bridge-clear') {
+      try {
+        localStorage.removeItem('ddu_user');
+        respond(event, { type: 'ddu-auth-bridge-response', user: null });
+      } catch (error) {
+        console.error('Auth bridge clear error', error);
+      }
+      return;
+    }
+
     if (data.type === 'ddu-auth-bridge-store') {
       try {
         const payload = typeof data.user === 'string' ? data.user : JSON.stringify(data.user);

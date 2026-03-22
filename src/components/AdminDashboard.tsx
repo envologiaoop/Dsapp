@@ -93,6 +93,9 @@ export function AdminDashboard({ userId, onClose }: Props) {
   const [maintenanceMessage, setMaintenanceMessage] = useState('We are performing scheduled maintenance. We will be back shortly!');
   const [maintenanceSaving, setMaintenanceSaving] = useState(false);
   const [maintenanceSaved, setMaintenanceSaved] = useState(false);
+  const [userFilter, setUserFilter] = useState<'all' | 'admin' | 'active' | 'banned'>('all');
+  const [postStatusFilter, setPostStatusFilter] = useState<'all' | 'pending' | 'rejected' | 'active' | 'deleted'>('all');
+  const [postTypeFilter, setPostTypeFilter] = useState<'all' | 'feed' | 'group' | 'event' | 'academic' | 'announcement'>('all');
 
   useEffect(() => {
     if (activeTab === 'stats') {
@@ -336,6 +339,31 @@ export function AdminDashboard({ userId, onClose }: Props) {
     }
   };
 
+  const filteredUsers = users.filter((user) => {
+    if (userFilter === 'admin') return user.role === 'admin';
+    if (userFilter === 'banned') return user.isBanned;
+    if (userFilter === 'active') return !user.isBanned;
+    return true;
+  });
+
+  const filteredPosts = posts.filter((post) => {
+    if (postStatusFilter === 'pending' && post.approvalStatus !== 'pending') return false;
+    if (postStatusFilter === 'rejected' && post.approvalStatus !== 'rejected') return false;
+    if (postStatusFilter === 'deleted' && !post.isDeleted) return false;
+    if (
+      postStatusFilter === 'active' &&
+      (post.isDeleted || post.approvalStatus === 'pending' || post.approvalStatus === 'rejected')
+    ) {
+      return false;
+    }
+    if (postTypeFilter !== 'all' && post.contentType !== postTypeFilter) return false;
+    return true;
+  });
+
+  const pendingApprovals = posts.filter((p) => p.approvalStatus === 'pending').length;
+  const pendingVerifications = verificationRequests.filter((req) => req.verificationStatus === 'pending').length;
+  const bannedUsers = users.filter((u) => u.isBanned).length;
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background/92 backdrop-blur-2xl">
       {/* Header */}
@@ -386,92 +414,94 @@ export function AdminDashboard({ userId, onClose }: Props) {
 
       {/* Content */}
       <div className="mx-auto max-w-6xl px-6 py-6">
-        {activeTab === 'stats' && stats && (
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(260px,0.95fr)]">
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <FriendlyCard className="border-white/35 bg-background/80 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="rounded-2xl bg-blue-500/20 p-3">
-                    <Users size={24} className="text-blue-500" />
-                  </div>
-                  <h3 className="text-lg font-bold">Users</h3>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total</span>
-                    <span className="font-bold">{stats.stats.users.total}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Active</span>
-                    <span className="font-bold text-green-500">{stats.stats.users.active}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Banned</span>
-                    <span className="font-bold text-red-500">{stats.stats.users.banned}</span>
-                  </div>
-                </div>
-              </FriendlyCard>
-
-              <FriendlyCard className="border-white/35 bg-background/80 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="rounded-2xl bg-purple-500/20 p-3">
-                    <FileText size={24} className="text-purple-500" />
-                  </div>
-                  <h3 className="text-lg font-bold">Posts</h3>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Total</span>
-                    <span className="font-bold">{stats.stats.posts.total}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Active</span>
-                    <span className="font-bold text-green-500">{stats.stats.posts.active}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Deleted</span>
-                    <span className="font-bold text-red-500">{stats.stats.posts.deleted}</span>
-                  </div>
-                </div>
-              </FriendlyCard>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <FriendlyCard className="border-white/35 bg-background/80 p-6">
-                <h3 className="mb-4 text-lg font-bold">Recent Users</h3>
-                <div className="space-y-3">
-                  {stats.recent.users.map((user: any) => (
-                    <div key={user._id} className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{user.name}</p>
-                        <p className="text-xs text-muted-foreground">@{user.username}</p>
+            {activeTab === 'stats' && stats && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <FriendlyCard className="border-white/35 bg-background/80 p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="rounded-2xl bg-blue-500/20 p-3">
+                        <Users size={24} className="text-blue-500" />
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(user.createdAt).toLocaleDateString()}
-                      </span>
+                      <h3 className="text-lg font-bold">Users</h3>
                     </div>
-                  ))}
-                </div>
-              </FriendlyCard>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Total</span>
+                        <span className="font-bold">{stats.stats.users.total}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Active</span>
+                        <span className="font-bold text-green-500">{stats.stats.users.active}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Banned</span>
+                        <span className="font-bold text-red-500">{stats.stats.users.banned}</span>
+                      </div>
+                    </div>
+                  </FriendlyCard>
 
-              <FriendlyCard className="border-white/35 bg-background/80 p-6">
-                <h3 className="text-lg font-bold mb-4">Recent Posts</h3>
-                <div className="space-y-3">
-                  {stats.recent.posts.map((post: any) => (
-                    <div key={post._id} className="space-y-1">
-                      <p className="text-sm font-medium">{post.userId?.name || 'Unknown'}</p>
-                      <p className="text-xs text-muted-foreground line-clamp-2">{post.content}</p>
+                  <FriendlyCard className="border-white/35 bg-background/80 p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="rounded-2xl bg-purple-500/20 p-3">
+                        <FileText size={24} className="text-purple-500" />
+                      </div>
+                      <h3 className="text-lg font-bold">Posts</h3>
                     </div>
-                  ))}
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Total</span>
+                        <span className="font-bold">{stats.stats.posts.total}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Active</span>
+                        <span className="font-bold text-green-500">{stats.stats.posts.active}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Deleted</span>
+                        <span className="font-bold text-red-500">{stats.stats.posts.deleted}</span>
+                      </div>
+                    </div>
+                  </FriendlyCard>
                 </div>
-              </FriendlyCard>
-            </div>
-          </div>
-        )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FriendlyCard className="border-white/35 bg-background/80 p-6">
+                    <h3 className="mb-4 text-lg font-bold">Recent Users</h3>
+                    <div className="space-y-3">
+                      {stats.recent.users.map((user: any) => (
+                        <div key={user._id} className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">@{user.username}</p>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </FriendlyCard>
+
+                  <FriendlyCard className="border-white/35 bg-background/80 p-6">
+                    <h3 className="text-lg font-bold mb-4">Recent Posts</h3>
+                    <div className="space-y-3">
+                      {stats.recent.posts.map((post: any) => (
+                        <div key={post._id} className="space-y-1">
+                          <p className="text-sm font-medium">{post.userId?.name || 'Unknown'}</p>
+                          <p className="text-xs text-muted-foreground line-clamp-2">{post.content}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </FriendlyCard>
+                </div>
+              </div>
+            )}
 
         {activeTab === 'users' && (
           <div className="space-y-6">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="relative flex-1">
                 <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -485,13 +515,34 @@ export function AdminDashboard({ userId, onClose }: Props) {
                   className="w-full rounded-2xl border border-white/35 bg-background/80 py-3 pl-10 pr-4 shadow-sm backdrop-blur focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
+              <div className="flex items-center gap-2">
+                {[
+                  { id: 'all', label: 'All' },
+                  { id: 'active', label: 'Active' },
+                  { id: 'banned', label: 'Banned' },
+                  { id: 'admin', label: 'Admins' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => setUserFilter(opt.id as any)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      userFilter === opt.id ? 'bg-primary text-primary-foreground shadow-[0_12px_28px_-20px_rgba(15,23,42,0.9)]' : 'border border-white/30 bg-background/70 text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Showing {filteredUsers.length} of {users.length} users
+            </p>
 
             {loading ? (
               <div className="text-center py-20 text-muted-foreground">Loading...</div>
             ) : (
               <div className="space-y-3">
-                {users.map((user) => (
+                {filteredUsers.map((user) => (
                   <FriendlyCard key={user._id} className="border-white/35 bg-background/80 p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -525,7 +576,6 @@ export function AdminDashboard({ userId, onClose }: Props) {
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap justify-end">
-                        {/* Badge management button */}
                         <button
                           onClick={() => { setBadgeUser(user); setBadgeTypeState(user.badgeType || 'none'); }}
                           className="flex items-center gap-1 rounded-xl bg-yellow-400/10 px-3 py-2 text-sm text-yellow-600 transition-colors hover:bg-yellow-400/20"
@@ -561,7 +611,6 @@ export function AdminDashboard({ userId, onClose }: Props) {
               </div>
             )}
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center gap-2">
                 <button
@@ -588,11 +637,42 @@ export function AdminDashboard({ userId, onClose }: Props) {
 
         {activeTab === 'posts' && (
           <div className="space-y-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-wrap gap-2">
+                <select
+                  value={postStatusFilter}
+                  onChange={(e) => setPostStatusFilter(e.target.value as any)}
+                  className="rounded-xl border border-white/30 bg-background/80 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="active">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="deleted">Deleted</option>
+                </select>
+                <select
+                  value={postTypeFilter}
+                  onChange={(e) => setPostTypeFilter(e.target.value as any)}
+                  className="rounded-xl border border-white/30 bg-background/80 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="all">All types</option>
+                  <option value="feed">Feed</option>
+                  <option value="group">Group</option>
+                  <option value="event">Event</option>
+                  <option value="academic">Academic</option>
+                  <option value="announcement">Announcement</option>
+                </select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Showing {filteredPosts.length} of {posts.length} posts
+              </p>
+            </div>
+
             {loading ? (
               <div className="text-center py-20 text-muted-foreground">Loading...</div>
             ) : (
               <div className="space-y-3">
-                {posts.map((post) => (
+                {filteredPosts.map((post) => (
                   <FriendlyCard key={post._id} className="border-white/35 bg-background/80 p-4">
                     <div className="flex justify-between gap-4">
                       <div className="flex-1">
@@ -836,6 +916,86 @@ export function AdminDashboard({ userId, onClose }: Props) {
             </FriendlyCard>
           </div>
         )}
+
+          </div>
+          <aside className="space-y-4">
+            <FriendlyCard className="border-white/35 bg-background/80 p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-muted-foreground">Snapshot</p>
+                <span className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary">Live</span>
+              </div>
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Total users</span>
+                  <span className="font-semibold">{stats?.stats.users.total ?? '—'}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Active users</span>
+                  <span className="font-semibold text-green-500">{stats?.stats.users.active ?? '—'}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Banned</span>
+                  <span className="font-semibold text-red-500">{stats?.stats.users.banned ?? bannedUsers}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Posts live</span>
+                  <span className="font-semibold text-primary">{stats?.stats.posts.active ?? posts.length}</span>
+                </div>
+              </div>
+            </FriendlyCard>
+
+            <FriendlyCard className="border-white/35 bg-background/80 p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-muted-foreground">Moderation Queues</p>
+                <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold text-amber-600">Monitor</span>
+              </div>
+              <div className="mt-3 space-y-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>Post approvals</span>
+                  <span className="flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-amber-600">
+                    {pendingApprovals} pending
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Verification</span>
+                  <span className="flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1 text-blue-600">
+                    {pendingVerifications} in review
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Maintenance</span>
+                  <span className={`flex items-center gap-2 rounded-full px-3 py-1 ${maintenanceMode ? 'bg-red-500/10 text-red-600' : 'bg-green-500/10 text-green-600'}`}>
+                    {maintenanceMode ? 'Active' : 'Normal'}
+                  </span>
+                </div>
+              </div>
+            </FriendlyCard>
+
+            <FriendlyCard className="border-white/35 bg-background/80 p-5">
+              <p className="text-sm font-semibold text-muted-foreground">Shortcuts</p>
+              <div className="mt-3 space-y-2">
+                <button
+                  onClick={() => setActiveTab('verification')}
+                  className="w-full rounded-xl border border-white/25 bg-background/80 px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+                >
+                  Open verification queue
+                </button>
+                <button
+                  onClick={() => setActiveTab('posts')}
+                  className="w-full rounded-xl border border-white/25 bg-background/80 px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+                >
+                  Review content
+                </button>
+                <button
+                  onClick={() => setActiveTab('maintenance')}
+                  className="w-full rounded-xl border border-white/25 bg-background/80 px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+                >
+                  Update maintenance notice
+                </button>
+              </div>
+            </FriendlyCard>
+          </aside>
+        </div>
       </div>
 
       {/* Badge Grant Modal (in Users tab) */}

@@ -527,7 +527,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onFinish }) => {
         body: JSON.stringify({ identifier: forgotIdentifier.trim() }),
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok) throw new Error(data?.error || 'Failed to request reset');
+      if (!res.ok) throw new Error(data?.error || 'Unable to send reset code right now. Please try again shortly.');
       goTo('forgot-reset');
       setSuccess(
         data?.delivery === 'telegram'
@@ -535,7 +535,11 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onFinish }) => {
           : 'If that account is linked to Telegram, a reset code has been sent there.'
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to request reset');
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Unable to send reset code right now. Please try again shortly.'
+      );
     } finally {
       setLoading(false);
     }

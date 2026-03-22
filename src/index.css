@@ -46,10 +46,17 @@
   /* Story ring — gradient border for unviewed stories */
   .story-ring {
     background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 4px rgba(252, 164, 196, 0.2),
+      0 8px 18px -10px rgba(224, 58, 106, 0.35);
   }
 
   .story-ring-viewed {
     background: oklch(0.88 0 0);
+    box-shadow:
+      0 0 0 2px #fff,
+      0 6px 12px -10px rgba(0, 0, 0, 0.25);
   }
 
   /* Hide scrollbar while preserving scroll behavior */
