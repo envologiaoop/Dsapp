@@ -186,35 +186,74 @@ export function initBot(io?: any) {
           );
           return;
         }
-        const linked = await User.findOneAndUpdate(
-          { telegramAuthCode: payload },
-          { telegramChatId: chatId.toString() },
-          { new: true }
-        );
-        if (linked) {
-          primeTelegramUserCache(chatId, linked);
+        const user = await User.findOne({ telegramAuthCode: payload });
+
+        if (!user) {
+          // Code not found — fall through to normal /start response
           await bot.sendMessage(
             chatId,
-            `✅ *Account linked successfully!*\n\n` +
-            `Welcome, ${linked.name}! 🎉\n\n` +
-            `Your Telegram account is now connected to DDU Social.\n\n` +
-            `You'll receive instant notifications for:\n` +
-            `• New messages 💬\n` +
-            `• Likes and comments ❤️\n` +
-            `• New followers 👥\n` +
-            `• Trending posts 🔥\n\n` +
-            `Use /menu to explore all features!`,
-            {
-              parse_mode: 'Markdown',
-              reply_markup: getMainMenuKeyboard()
-            }
+            "❌ *Invalid verification code*\n\n" +
+            "The code in the link is incorrect or has expired.\n\n" +
+            "Please:\n" +
+            "1. Go to the DDU Social web app\n" +
+            "2. Get a new 6-digit code\n" +
+            "3. Send it here or use the new link\n\n" +
+            "Need help? Use /help",
+            { parse_mode: 'Markdown' }
           );
           return;
         }
-        // Code not found — fall through to normal /start response so the user
-        // still receives helpful instructions.
+
+        // Check if code has expired
+        if (user.telegramAuthCodeExpiresAt && user.telegramAuthCodeExpiresAt.getTime() < Date.now()) {
+          await bot.sendMessage(
+            chatId,
+            "⏰ *Code Expired*\n\n" +
+            "This verification code has expired (codes are valid for 15 minutes).\n\n" +
+            "Please:\n" +
+            "1. Go to the DDU Social web app\n" +
+            "2. Generate a new code\n" +
+            "3. Use the new link or send the code here\n\n" +
+            "Need help? Use /help",
+            { parse_mode: 'Markdown' }
+          );
+          return;
+        }
+
+        // Link the account
+        user.telegramChatId = chatId.toString();
+        user.telegramAuthCode = undefined; // Clear the code after successful link
+        user.telegramAuthCodeExpiresAt = undefined;
+        await user.save();
+
+        primeTelegramUserCache(chatId, user);
+        await bot.sendMessage(
+          chatId,
+          `✅ *Account linked successfully!*\n\n` +
+          `Welcome, ${user.name}! 🎉\n\n` +
+          `Your Telegram account is now connected to DDU Social.\n\n` +
+          `You'll receive instant notifications for:\n` +
+          `• New messages 💬\n` +
+          `• Likes and comments ❤️\n` +
+          `• New followers 👥\n` +
+          `• Trending posts 🔥\n\n` +
+          `Use /menu to explore all features!`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: getMainMenuKeyboard()
+          }
+        );
+        return;
       } catch (error) {
         console.error('Error during /start deep-link verification:', error);
+        await bot.sendMessage(
+          chatId,
+          "⚠️ *Connection Error*\n\n" +
+          "We're having trouble linking your account right now.\n\n" +
+          "Please try again in a few moments. If the problem persists, contact /support",
+          { parse_mode: 'Markdown' }
+        );
+        return;
       }
     }
 
@@ -875,31 +914,9 @@ export function initBot(io?: any) {
           );
           return;
         }
-        const user = await User.findOneAndUpdate(
-          { telegramAuthCode: text },
-          { telegramChatId: chatId.toString() },
-          { new: true }
-        );
+        const user = await User.findOne({ telegramAuthCode: text });
 
-        if (user) {
-          primeTelegramUserCache(chatId, user);
-          bot.sendMessage(
-            chatId,
-            `✅ *Account linked successfully!*\n\n` +
-            `Welcome, ${user.name}! 🎉\n\n` +
-            `Your Telegram account is now approved for authentication and recovery.\n\n` +
-            `You'll now receive instant notifications for:\n` +
-            `• New messages 💬\n` +
-            `• Likes and comments ❤️\n` +
-            `• New followers 👥\n` +
-            `• Trending posts 🔥\n\n` +
-            `Use /menu to explore all features!`,
-            {
-              parse_mode: 'Markdown',
-              reply_markup: getMainMenuKeyboard()
-            }
-          );
-        } else {
+        if (!user) {
           bot.sendMessage(
             chatId,
             "❌ *Invalid verification code*\n\n" +
@@ -911,7 +928,48 @@ export function initBot(io?: any) {
             "Need help? Use /support",
             { parse_mode: 'Markdown' }
           );
+          return;
         }
+
+        // Check if code has expired
+        if (user.telegramAuthCodeExpiresAt && user.telegramAuthCodeExpiresAt.getTime() < Date.now()) {
+          bot.sendMessage(
+            chatId,
+            "⏰ *Code Expired*\n\n" +
+            "This verification code has expired (codes are valid for 15 minutes).\n\n" +
+            "Please:\n" +
+            "1. Go to the DDU Social web app\n" +
+            "2. Generate a new code\n" +
+            "3. Send it here\n\n" +
+            "Need help? Use /support",
+            { parse_mode: 'Markdown' }
+          );
+          return;
+        }
+
+        // Link the account
+        user.telegramChatId = chatId.toString();
+        user.telegramAuthCode = undefined; // Clear the code after successful link
+        user.telegramAuthCodeExpiresAt = undefined;
+        await user.save();
+
+        primeTelegramUserCache(chatId, user);
+        bot.sendMessage(
+          chatId,
+          `✅ *Account linked successfully!*\n\n` +
+          `Welcome, ${user.name}! 🎉\n\n` +
+          `Your Telegram account is now approved for authentication and recovery.\n\n` +
+          `You'll now receive instant notifications for:\n` +
+          `• New messages 💬\n` +
+          `• Likes and comments ❤️\n` +
+          `• New followers 👥\n` +
+          `• Trending posts 🔥\n\n` +
+          `Use /menu to explore all features!`,
+          {
+            parse_mode: 'Markdown',
+            reply_markup: getMainMenuKeyboard()
+          }
+        );
       } catch (error) {
         console.error("Bot verification error:", error);
         bot.sendMessage(

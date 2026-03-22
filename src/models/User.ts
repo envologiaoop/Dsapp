@@ -24,6 +24,7 @@ export interface IUser extends Document {
   verificationReviewedBy?: mongoose.Types.ObjectId;
   telegramChatId?: string;
   telegramAuthCode?: string;
+  telegramAuthCodeExpiresAt?: Date;
   telegramNotificationsEnabled?: boolean;
   notificationSettings?: {
     messages?: boolean;
@@ -72,6 +73,7 @@ const UserSchema = new Schema<IUser>(
     verificationReviewedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     telegramChatId: { type: String },
     telegramAuthCode: { type: String },
+    telegramAuthCodeExpiresAt: { type: Date },
     telegramNotificationsEnabled: { type: Boolean, default: false },
     notificationSettings: {
       messages: { type: Boolean, default: true },

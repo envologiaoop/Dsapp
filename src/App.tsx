@@ -1032,7 +1032,12 @@ export default function App() {
                           setComposerNotice('Your post was submitted for review and will appear once approved.');
                         } else {
                           setComposerNotice('Your post was published to the feed.');
+                          // Instantly add the post to the feed for immediate reflection
+                          if (createdPost && createdPost.approvalStatus !== 'pending') {
+                            setPosts(prevPosts => [createdPost, ...prevPosts]);
+                          }
                         }
+                        // Also fetch to ensure consistency with server
                         fetchPosts();
                       }}
                     />

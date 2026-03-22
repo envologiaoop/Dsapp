@@ -792,7 +792,15 @@ app.post('/api/auth/reset-password', async (req, res) => {
       }
     }
 
-    res.json({ ok: true });
+    // Auto-login the user after successful password reset
+    await ensureTelegramAuthCode(user);
+    const token = createAuthToken({ userId: user._id.toString(), role: user.role });
+    res.json({
+      ok: true,
+      autoLogin: true,
+      user: formatAuthUser(user),
+      token
+    });
   } catch (error) {
     console.error('POST /api/auth/reset-password error:', error);
     res.status(500).json({ error: 'Failed to reset password' });
@@ -815,11 +823,13 @@ app.post('/api/auth/telegram-code', async (req, res) => {
       return res.status(400).json({ error: 'Telegram is already connected for this account.' });
     }
 
+    // Generate new code and set expiry (15 minutes)
     const telegramAuthCode = crypto.randomInt(100000, 1000000).toString();
     user.telegramAuthCode = telegramAuthCode;
+    user.telegramAuthCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
     await user.save();
 
-    res.json({ telegramAuthCode });
+    res.json({ telegramAuthCode, expiresAt: user.telegramAuthCodeExpiresAt });
   } catch (error) {
     console.error('POST /api/auth/telegram-code error:', error);
     res.status(500).json({ error: 'Failed to generate Telegram code' });
@@ -829,10 +839,28 @@ app.post('/api/auth/telegram-code', async (req, res) => {
 app.get('/api/auth/verify-telegram/:code', async (req, res) => {
   try {
     const { code } = req.params;
+
+    // Find user with matching code
     const user = await User.findOne({ telegramAuthCode: code });
-    if (!user || !user.telegramChatId) {
-      return res.json({ verified: false });
+
+    if (!user) {
+      return res.json({ verified: false, error: 'Invalid or expired code' });
     }
+
+    // Check if code has expired
+    if (user.telegramAuthCodeExpiresAt && user.telegramAuthCodeExpiresAt.getTime() < Date.now()) {
+      return res.json({ verified: false, error: 'Code has expired. Please generate a new code.' });
+    }
+
+    // Check if telegram is already linked
+    if (!user.telegramChatId) {
+      return res.json({ verified: false, waiting: true, message: 'Code is valid but not yet linked. Please send the code to the Telegram bot.' });
+    }
+
+    // Success! Clear the code since it's been used
+    user.telegramAuthCode = undefined;
+    user.telegramAuthCodeExpiresAt = undefined;
+    await user.save();
 
     res.json({
       verified: true,
