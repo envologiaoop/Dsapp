@@ -203,6 +203,18 @@ describe('Input Validation and Sanitization', () => {
         year: '2',
       });
     });
+
+    it('preserves password and confirmPassword values without overriding', () => {
+      expect(
+        normalizeSignupInput({
+          password: 'Password123',
+          confirmPassword: 'Password123',
+        })
+      ).toMatchObject({
+        password: 'Password123',
+        confirmPassword: 'Password123',
+      });
+    });
   });
 
   describe('getSignupValidationErrors', () => {
@@ -242,6 +254,20 @@ describe('Input Validation and Sanitization', () => {
           'Select a valid academic year.',
         ])
       );
+    });
+
+    it('reports password confirmation mismatch', () => {
+      expect(
+        getSignupValidationErrors({
+          name: 'Test User',
+          username: 'test_user',
+          email: 'user@example.com',
+          password: 'Password123',
+          confirmPassword: 'Password124',
+          department: 'Software Engineering',
+          year: '3',
+        })
+      ).toContain('Password confirmation does not match.');
     });
   });
 

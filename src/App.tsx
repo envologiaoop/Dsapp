@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
-import { FriendlyCard } from './components/FriendlyCard';
-import { Home, MessageSquare, Settings, Ghost, LogOut, Shield, Bell, Zap, Plus, User, Search, Lock, Eye, HelpCircle, Flag, ChevronRight, UserCog, Sparkles, Users, CalendarDays, GraduationCap, Copy, RefreshCw, ExternalLink, X } from 'lucide-react';
+import { Home, MessageSquare, Ghost, LogOut, Shield, Bell, Plus, User, Search, Lock, Eye, HelpCircle, Flag, ChevronRight, UserCog, Sparkles, Copy, RefreshCw, ExternalLink, X } from 'lucide-react';
 import { OnboardingFlow } from './components/Onboarding/OnboardingFlow';
 import { PostActions } from './components/PostActions';
 import { FollowButton } from './components/FollowButton';
@@ -15,12 +14,19 @@ import { MaintenanceScreen } from './components/MaintenanceScreen';
 import { SocialText } from './components/SocialText';
 
 import { NotificationSettings, DEFAULT_NOTIFICATION_SETTINGS, normalizeNotificationSettings } from './utils/notificationSettings';
-import { CommunitySection, COMMUNITY_GROUPS, getGroupName, normalizeContentType, getVisibleCommunityPosts } from './utils/community';
+import { normalizeContentType } from './utils/community';
 import { sortStoryGroups, StoryGroup } from './utils/stories';
 import { GHOST_MODE_MIN_ACCOUNT_AGE_DAYS, canUseGhostMode } from './utils/ghostPolicy';
 import { getTelegramHandle, getTelegramProfileUrl, getTelegramDeepLink } from './utils/telegram';
 import { getStoredDataSaverMode, setStoredDataSaverMode, shouldEnableDataSaverByDefault } from './utils/performance';
 import { withAuthHeaders } from './utils/clientAuth';
+
+const AUTH_SYNC_ORIGINS = [
+  'https://ddusocial.vercel.app',
+  'https://ddusocial.tech',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
 
 const ChatRoom = lazy(() => import('./components/Chat/ChatRoom').then((m) => ({ default: m.ChatRoom })));
 const CreatePost = lazy(() => import('./components/CreatePost').then((m) => ({ default: m.CreatePost })));
@@ -49,7 +55,6 @@ export default function App() {
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'home' | 'chat' | 'inbox' | 'profile' | 'settings'>('home');
-  const [homeFeedTab, setHomeFeedTab] = useState<'feed' | 'ghost'>('feed');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
   const [activeChat, setActiveChat] = useState<any>(null);
@@ -71,9 +76,6 @@ export default function App() {
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [maintenanceMessage, setMaintenanceMessage] = useState('');
-  const [homeSection, setHomeSection] = useState<CommunitySection>('feed');
-  const [selectedGroupId, setSelectedGroupId] = useState('all');
-  const [joinedGroups, setJoinedGroups] = useState<string[]>([]);
   const [composerNotice, setComposerNotice] = useState<string | null>(null);
   const [storyGroups, setStoryGroups] = useState<StoryGroup[]>([]);
   const [activeStoryUserId, setActiveStoryUserId] = useState<string | null>(null);
@@ -92,7 +94,9 @@ export default function App() {
 
   // Computed values
   const ghostModeDisabled = !canUseGhostMode(user?.createdAt);
-  const visiblePosts = getVisibleCommunityPosts(posts, homeSection, selectedGroupId, joinedGroups);
+  const visiblePosts = (Array.isArray(posts) ? posts : []).filter(
+    (post) => post.approvalStatus !== 'pending' && post.approvalStatus !== 'rejected'
+  );
   const botHandle = getTelegramHandle(import.meta.env.VITE_TELEGRAM_BOT_USERNAME);
   const botUrl = getTelegramProfileUrl(import.meta.env.VITE_TELEGRAM_BOT_USERNAME);
   const supportContactUrl = 'https://t.me/dev_envologia';
@@ -119,16 +123,6 @@ export default function App() {
     if (!ghostModeDisabled) {
       setIsAnonymous(!isAnonymous);
     }
-  };
-
-  const toggleGroupMembership = (groupId: string) => {
-    setJoinedGroups((prev) => {
-      if (prev.includes(groupId)) {
-        return prev.filter((id) => id !== groupId);
-      } else {
-        return [...prev, groupId];
-      }
-    });
   };
 
   const refreshTelegramAuthCode = useCallback(async (forceNew = false) => {
@@ -279,6 +273,30 @@ export default function App() {
     return { ...raw, id };
   }, []);
 
+  const applyStoredUser = useCallback((rawUser: any) => {
+    if (!rawUser) return false;
+    try {
+      const normalized = normalizeUser({
+        ...rawUser,
+        notificationSettings: normalizeNotificationSettings(rawUser.notificationSettings),
+      });
+      if (!normalized.telegramChatId) {
+        return false;
+      }
+      setUser(normalized);
+      setIsOnboarded(true);
+      setTelegramNotificationsEnabled(Boolean(normalized.telegramNotificationsEnabled));
+      setNotificationSettings(normalized.notificationSettings);
+      if (normalized.telegramAuthCode) {
+        setTelegramAuthCode(normalized.telegramAuthCode);
+      }
+      localStorage.setItem('ddu_user', JSON.stringify(normalized));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }, [normalizeUser]);
+
   const didHandleDeepLinkRef = useRef(false);
 
   useEffect(() => {
@@ -289,20 +307,8 @@ export default function App() {
     if (savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
-        const normalized = normalizeUser(parsedUser);
-        if (!normalized.telegramChatId) {
+        if (!applyStoredUser(parsedUser)) {
           localStorage.removeItem('ddu_user');
-          return;
-        }
-        setUser(normalized);
-        setIsOnboarded(true);
-        // Load telegram notifications preference
-        if (normalized.telegramNotificationsEnabled !== undefined) {
-          setTelegramNotificationsEnabled(normalized.telegramNotificationsEnabled);
-        }
-        setNotificationSettings(normalizeNotificationSettings(normalized.notificationSettings));
-        if (normalized.telegramAuthCode) {
-          setTelegramAuthCode(normalized.telegramAuthCode);
         }
       } catch (e) {
         localStorage.removeItem('ddu_user');
@@ -319,7 +325,7 @@ export default function App() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [applyStoredUser]);
 
   // Handle deep links (e.g. from Telegram) like /?chatWith=<userId>&messageId=<messageId>
   useEffect(() => {
@@ -358,6 +364,68 @@ export default function App() {
   }, [isOnboarded, user?.id]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isOnboarded || user?.id) return;
+
+    const targetOrigins = AUTH_SYNC_ORIGINS.filter((origin) => origin !== window.location.origin);
+    if (targetOrigins.length === 0) return;
+
+    let cleaned = false;
+    const frames: HTMLIFrameElement[] = [];
+
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      window.removeEventListener('message', handleMessage);
+      frames.forEach((frame) => frame.remove());
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (cleaned) return;
+      if (!targetOrigins.includes(event.origin)) return;
+      if (event.data?.type !== 'ddu-auth-bridge-response') return;
+
+      const payload = event.data.user;
+      if (!payload) return;
+
+      let parsedUser = payload;
+      if (typeof payload === 'string') {
+        try {
+          parsedUser = JSON.parse(payload);
+        } catch {
+          return;
+        }
+      }
+
+      if (applyStoredUser(parsedUser)) {
+        cleanup();
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    targetOrigins.forEach((origin) => {
+      const frame = document.createElement('iframe');
+      frame.src = `${origin}/auth-bridge.html`;
+      frame.style.display = 'none';
+      frame.tabIndex = -1;
+      document.body.appendChild(frame);
+      frames.push(frame);
+
+      frame.onload = () => {
+        frame.contentWindow?.postMessage({ type: 'ddu-auth-bridge-request' }, origin);
+      };
+    });
+
+    const timeoutId = window.setTimeout(cleanup, 7000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      cleanup();
+    };
+  }, [applyStoredUser, isOnboarded, user?.id]);
+
+  useEffect(() => {
     setStoredDataSaverMode(liteModeEnabled);
   }, [liteModeEnabled]);
 
@@ -372,6 +440,38 @@ export default function App() {
     if (!user?.id || user.telegramChatId) return;
     refreshTelegramAuthCode();
   }, [user?.id, user?.telegramChatId, refreshTelegramAuthCode]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!user?.id) return;
+
+    const targetOrigins = AUTH_SYNC_ORIGINS.filter((origin) => origin !== window.location.origin);
+    if (targetOrigins.length === 0) return;
+
+    const frames: HTMLIFrameElement[] = [];
+    const payload = JSON.stringify(user);
+
+    targetOrigins.forEach((origin) => {
+      const frame = document.createElement('iframe');
+      frame.src = `${origin}/auth-bridge.html`;
+      frame.style.display = 'none';
+      frame.tabIndex = -1;
+      document.body.appendChild(frame);
+      frames.push(frame);
+
+      frame.onload = () => {
+        frame.contentWindow?.postMessage({ type: 'ddu-auth-bridge-store', user: payload }, origin);
+      };
+    });
+
+    const cleanup = () => frames.forEach((frame) => frame.remove());
+    const timeoutId = window.setTimeout(cleanup, 4000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      cleanup();
+    };
+  }, [user]);
 
   useEffect(() => {
     if (user?.telegramChatId) {
@@ -494,21 +594,7 @@ export default function App() {
   };
 
   const handleOnboardingFinish = (userData: any) => {
-    const normalizedUser = normalizeUser({
-      ...userData,
-      notificationSettings: normalizeNotificationSettings(userData.notificationSettings),
-    });
-    if (!normalizedUser.telegramChatId) {
-      return;
-    }
-    setUser(normalizedUser);
-    setIsOnboarded(true);
-    setTelegramNotificationsEnabled(Boolean(normalizedUser.telegramNotificationsEnabled));
-    setNotificationSettings(normalizedUser.notificationSettings);
-    if (normalizedUser.telegramAuthCode) {
-      setTelegramAuthCode(normalizedUser.telegramAuthCode);
-    }
-    localStorage.setItem('ddu_user', JSON.stringify(normalizedUser));
+    applyStoredUser(userData);
   };
 
   const handleProfileUpdate = (updatedUser: any) => {
@@ -596,9 +682,6 @@ export default function App() {
     setCommentPostId(null);
     setActiveChat(null);
     setActiveTab('home');
-    setHomeSection('feed');
-    setSelectedGroupId('all');
-    setJoinedGroups([]);
     setIsAnonymous(false);
     setTelegramNotificationsEnabled(false);
     setNotificationSettings(DEFAULT_NOTIFICATION_SETTINGS);
@@ -823,180 +906,81 @@ export default function App() {
       <main className="mx-auto max-w-lg px-0 py-0">
         {activeTab === 'home' && (
           <div className="space-y-0">
-            {/* Section tabs — compact Instagram-style tab bar */}
-            <div className="flex items-center border-b border-border bg-card sticky top-[57px] z-30 px-4">
-              {[
-                { id: 'feed', label: 'Feed', icon: Home },
-                { id: 'groups', label: 'Groups', icon: Users },
-                { id: 'events', label: 'Events', icon: CalendarDays },
-                { id: 'academics', label: 'Academics', icon: GraduationCap },
-              ].map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => {
-                    setHomeSection(section.id as CommunitySection);
-                    setShowCreatePost(false);
-                    setComposerNotice(null);
-                  }}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-3 text-xs font-semibold border-b-2 transition-colors',
-                    homeSection === section.id
-                      ? 'border-foreground text-foreground'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <section.icon size={13} />
-                  {section.label}
-                </button>
-              ))}
-              <button
-                onClick={openCreateMenu}
-                className="ml-auto flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 my-1.5"
-                disabled={homeSection === 'academics' && user?.role !== 'admin'}
-              >
-                <Plus size={14} />
-                Create
-              </button>
+            <div className="bg-card border-b border-border">
+              <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-1">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">Stories</p>
+                  <p className="text-xs text-muted-foreground">Quick updates at the top, posts below.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={startCreateStory}
+                    className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-muted"
+                  >
+                    + Story
+                  </button>
+                  <button
+                    onClick={openCreateMenu}
+                    className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                  >
+                    <Plus size={14} />
+                    Create
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-3 overflow-x-auto px-4 py-3 no-scrollbar">
+                {storyTrayGroups.map((group) => {
+                  const isOwnGroup = group.user._id === user?.id;
+                  const hasStories = group.stories.length > 0;
+
+                  return (
+                    <button
+                      key={group.user._id}
+                      type="button"
+                      onClick={() => {
+                        if (hasStories) {
+                          setActiveStoryUserId(group.user._id);
+                        } else if (isOwnGroup) {
+                          startCreateStory();
+                        }
+                      }}
+                      className="group flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 text-center"
+                    >
+                      <div className={cn(
+                        'p-[2.5px] rounded-full',
+                        hasStories
+                          ? group.hasViewed
+                            ? 'story-ring-viewed'
+                            : 'story-ring'
+                          : 'bg-border'
+                      )}>
+                        <div className="flex h-[3.8rem] w-[3.8rem] items-center justify-center overflow-hidden rounded-full bg-card ring-2 ring-card relative">
+                          {group.user.avatarUrl ? (
+                            <img src={group.user.avatarUrl} alt={group.user.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-base font-bold text-primary">{group.user.name?.[0] || 'U'}</span>
+                          )}
+                          {isOwnGroup && !hasStories && (
+                            <div className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground">
+                              <Plus size={11} />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <p className="truncate w-full text-[10px] font-semibold text-foreground">
+                        {isOwnGroup ? 'Your story' : `@${group.user.username || 'user'}`}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {composerNotice && (
               <div className="mx-4 my-2 rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-800 dark:text-emerald-300">
                 {composerNotice}
-              </div>
-            )}
-
-            {homeSection === 'feed' && (
-              <div className="bg-card border-b border-border">
-                <div className="flex items-center justify-between px-4 pt-3 pb-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">Stories</p>
-                  <button
-                    type="button"
-                    onClick={startCreateStory}
-                    className="text-xs font-semibold text-primary"
-                  >
-                    + Add
-                  </button>
-                </div>
-
-                <div className="flex gap-3 overflow-x-auto px-4 py-3 no-scrollbar">
-                  {storyTrayGroups.map((group) => {
-                    const isOwnGroup = group.user._id === user?.id;
-                    const hasStories = group.stories.length > 0;
-
-                    return (
-                      <button
-                        key={group.user._id}
-                        type="button"
-                        onClick={() => {
-                          if (hasStories) {
-                            setActiveStoryUserId(group.user._id);
-                          } else if (isOwnGroup) {
-                            startCreateStory();
-                          }
-                        }}
-                        className="group flex w-[4.5rem] shrink-0 flex-col items-center gap-1.5 text-center"
-                      >
-                        <div className={cn(
-                          'p-[2.5px] rounded-full',
-                          hasStories
-                            ? group.hasViewed
-                              ? 'story-ring-viewed'
-                              : 'story-ring'
-                            : 'bg-border'
-                        )}>
-                          <div className="flex h-[3.8rem] w-[3.8rem] items-center justify-center overflow-hidden rounded-full bg-card ring-2 ring-card relative">
-                            {group.user.avatarUrl ? (
-                              <img src={group.user.avatarUrl} alt={group.user.name} className="h-full w-full object-cover" />
-                            ) : (
-                              <span className="text-base font-bold text-primary">{group.user.name?.[0] || 'U'}</span>
-                            )}
-                            {isOwnGroup && !hasStories && (
-                              <div className="absolute bottom-0 right-0 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground">
-                                <Plus size={11} />
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <p className="truncate w-full text-[10px] font-semibold text-foreground">
-                          {isOwnGroup ? 'Your story' : `@${group.user.username || 'user'}`}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Groups filter bar */}
-            {homeSection === 'groups' && (
-              <div className="space-y-0">
-                <div className="flex flex-wrap gap-2 px-4 py-3 border-b border-border bg-card">
-                  <button
-                    onClick={() => setSelectedGroupId('all')}
-                    className={cn(
-                      'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                      selectedGroupId === 'all' ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'
-                    )}
-                  >
-                    All groups
-                  </button>
-                  {joinedGroups.map((groupId) => (
-                    <button
-                      key={groupId}
-                      onClick={() => setSelectedGroupId(groupId)}
-                      className={cn(
-                        'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                        selectedGroupId === groupId ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'
-                      )}
-                    >
-                      {getGroupName(groupId)}
-                    </button>
-                  ))}
-                </div>
-                <div className="grid gap-px bg-border">
-                  {COMMUNITY_GROUPS.map((group) => {
-                    const joined = joinedGroups.includes(group.id);
-                    return (
-                      <div
-                        key={group.id}
-                        className="flex items-center gap-3 bg-card px-4 py-3"
-                      >
-                        <div className="h-11 w-11 rounded-full bg-muted flex items-center justify-center text-lg font-bold text-primary shrink-0">
-                          {group.name[0]}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm truncate">{group.name}</p>
-                          <p className="text-xs text-muted-foreground truncate">{group.summary}</p>
-                          <p className="text-[10px] text-muted-foreground">{group.membersLabel}</p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => {
-                              setSelectedGroupId(group.id);
-                            }}
-                            className="text-xs font-semibold text-primary"
-                          >
-                            View
-                          </button>
-                          <button
-                            onClick={() => {
-                              toggleGroupMembership(group.id);
-                              setComposerNotice(null);
-                            }}
-                            className={cn(
-                              'rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors',
-                              joined
-                                ? 'bg-muted text-foreground'
-                                : 'bg-primary text-primary-foreground'
-                            )}
-                          >
-                            {joined ? 'Joined' : 'Join'}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
             )}
 
@@ -1019,19 +1003,13 @@ export default function App() {
                     <CreatePost
                       user={user}
                       isAnonymous={isAnonymous}
-                      currentSection={homeSection}
-                      selectedGroupId={selectedGroupId}
-                      joinedGroupIds={joinedGroups}
+                      currentSection="feed"
                       onPostCreated={(createdPost) => {
                         setShowCreatePost(false);
                         if (createdPost?.approvalStatus === 'pending') {
-                          setComposerNotice('Your event request was submitted for admin approval and will appear after review.');
-                        } else if (createdPost?.contentType === 'announcement') {
-                          setComposerNotice('Announcement published across the feed and groups.');
-                        } else if (createdPost?.contentType === 'academic') {
-                          setComposerNotice('Academic update published successfully.');
+                          setComposerNotice('Your post was submitted for review and will appear once approved.');
                         } else {
-                          setComposerNotice(null);
+                          setComposerNotice('Your post was published to the feed.');
                         }
                         fetchPosts();
                       }}
@@ -1041,19 +1019,7 @@ export default function App() {
               </div>
             )}
 
-            {homeSection === 'academics' && user?.role !== 'admin' && (
-              <div className="px-4 py-3 text-sm text-muted-foreground border-b border-border">
-                Only admins can create academic news, but everyone can read the published updates here.
-              </div>
-            )}
-
-            {homeSection === 'groups' && joinedGroups.length === 0 && (
-              <div className="px-4 py-3 text-sm text-muted-foreground border-b border-border">
-                Join a group above to start posting in group conversations.
-              </div>
-            )}
-
-            {homeSection === 'feed' && suggestedUsers.length > 0 && (
+            {suggestedUsers.length > 0 && (
               <div className="bg-card border-b border-border">
                 <div className="flex items-center justify-between px-4 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">Suggested for you</p>
@@ -1223,15 +1189,7 @@ export default function App() {
             );
             }) : (
               <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
-                <p className="text-sm">
-                  {homeSection === 'groups'
-                    ? 'No group posts yet. Share the first update with your community.'
-                    : homeSection === 'events'
-                      ? 'No approved events yet. Request one to get things started.'
-                      : homeSection === 'academics'
-                        ? 'No academic news yet.'
-                        : 'No posts yet. Be the first!'}
-                </p>
+                <p className="text-sm">No posts yet. Be the first to share something.</p>
               </div>
             )}
           </div>

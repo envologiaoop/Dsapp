@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -302,6 +302,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onFinish }) => {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const usernameCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const years = useMemo(() => [...SIGNUP_YEAR_OPTIONS], []);
   const avatarError = validateAvatarFile(signupAvatarFile);
   const passwordHint = getPasswordValidationMessage();
@@ -521,13 +522,13 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onFinish }) => {
   };
 
   const resetPassword = async () => {
-    // BUG FIX: guard password match BEFORE setLoading to avoid a spurious loading flash
+    resetFeedback();
+    // Guard password match BEFORE setLoading to avoid a spurious loading flash
     if (newPassword !== confirmNewPassword) {
       setError('Passwords do not match.');
       return;
     }
     setLoading(true);
-    resetFeedback();
     try {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
@@ -634,6 +635,15 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onFinish }) => {
       : usernameStatus === 'invalid'
       ? { tone: 'error' as const, msg: 'Use 3\u201320 lowercase letters, numbers, _ or .' }
       : null;
+
+  useEffect(
+    () => () => {
+      if (usernameCheckTimeoutRef.current) {
+        clearTimeout(usernameCheckTimeoutRef.current);
+      }
+    },
+    []
+  );
 
   // ─── Render ────────────────────────────────────────────────────────────────────
 
@@ -847,9 +857,20 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onFinish }) => {
                     <AuthInput
                       value={signupUsername}
                       onChange={(e) => {
-                        setSignupUsername(e.target.value.toLowerCase());
-                        setUsernameStatus('idle');
+                        const nextUsername = e.target.value.toLowerCase();
+                        setSignupUsername(nextUsername);
                         resetFeedback();
+                        if (usernameCheckTimeoutRef.current) {
+                          clearTimeout(usernameCheckTimeoutRef.current);
+                        }
+                        if (!nextUsername.trim()) {
+                          setUsernameStatus('idle');
+                          return;
+                        }
+                        setUsernameStatus('checking');
+                        usernameCheckTimeoutRef.current = setTimeout(() => {
+                          void checkUsernameAvailability(nextUsername);
+                        }, 300);
                       }}
                       onBlur={() => void checkUsernameAvailability()}
                       placeholder="Username  (e.g. ddu_student)"

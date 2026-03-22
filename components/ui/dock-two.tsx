@@ -22,8 +22,8 @@ export const Dock: React.FC<DockProps> = ({ items, className, activeLabel }) => 
         className
       )}
     >
-      <div className="mx-auto max-w-lg">
-        <div className="pointer-events-auto border-t border-border bg-card/95 backdrop-blur-md pb-[env(safe-area-inset-bottom,0px)]">
+      <div className="mx-auto max-w-md">
+        <div className="pointer-events-auto border-t border-border bg-card/95 backdrop-blur-md pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))]">
           <div className="flex items-center justify-around">
             {items.map(({ icon: Icon, label, onClick }) => {
               const isActive = activeLabel === label;
