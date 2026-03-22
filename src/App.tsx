@@ -28,6 +28,7 @@ const AUTH_SYNC_ORIGINS = [
   'http://localhost:5173',
   'http://localhost:3000',
 ];
+const LOGOUT_BLOCK_KEY = 'ddu_logout_block';
 
 const ChatRoom = lazy(() => import('./components/Chat/ChatRoom').then((m) => ({ default: m.ChatRoom })));
 const CreatePost = lazy(() => import('./components/CreatePost').then((m) => ({ default: m.CreatePost })));
@@ -307,6 +308,11 @@ export default function App() {
       if (!normalized.telegramChatId) {
         return false;
       }
+      try {
+        sessionStorage.removeItem(LOGOUT_BLOCK_KEY);
+      } catch {
+        // ignore session storage issues
+      }
       markIntroSeen();
       setUser(normalized);
       setIsOnboarded(true);
@@ -391,6 +397,11 @@ export default function App() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (isOnboarded || user?.id) return;
+    try {
+      if (sessionStorage.getItem(LOGOUT_BLOCK_KEY) === 'true') return;
+    } catch {
+      // ignore session storage read issues
+    }
 
     const targetOrigins = AUTH_SYNC_ORIGINS.filter((origin) => origin !== window.location.origin);
     if (targetOrigins.length === 0) return;
@@ -686,8 +697,39 @@ export default function App() {
     setSettingsNotice({ type: 'success', message: topic === 'bug' ? 'Opening bug report chat.' : 'Opening feature request chat.' });
   };
 
+  const broadcastLogoutToOrigins = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const targetOrigins = AUTH_SYNC_ORIGINS.filter((origin) => origin !== window.location.origin);
+    if (targetOrigins.length === 0) return;
+
+    const frames: HTMLIFrameElement[] = [];
+
+    targetOrigins.forEach((origin) => {
+      const frame = document.createElement('iframe');
+      frame.src = `${origin}/auth-bridge.html`;
+      frame.style.display = 'none';
+      frame.tabIndex = -1;
+      document.body.appendChild(frame);
+      frames.push(frame);
+
+      frame.onload = () => {
+        frame.contentWindow?.postMessage({ type: 'ddu-auth-bridge-clear' }, origin);
+      };
+    });
+
+    const cleanup = () => frames.forEach((frame) => frame.remove());
+    window.setTimeout(cleanup, 4000);
+  }, []);
+
   const handleLogout = () => {
+    try {
+      sessionStorage.setItem(LOGOUT_BLOCK_KEY, 'true');
+    } catch {
+      // ignore session storage write issues
+    }
     localStorage.removeItem('ddu_user');
+    broadcastLogoutToOrigins();
     setIsOnboarded(false);
     setUser(null);
     setPosts([]);
@@ -786,6 +828,32 @@ export default function App() {
   const openHashtagSearch = (hashtag: string) => {
     setSearchInitialQuery(hashtag);
     setShowSearch(true);
+  };
+
+  const resetSurfaceState = () => {
+    setActiveStoryUserId(null);
+    setProfileModalUserId(null);
+    setProfileSelectedPost(null);
+    setViewingProfileUserId(null);
+    setShowEditProfile(false);
+    setShowAdminDashboard(false);
+    setShowNotifications(false);
+    setShowSearch(false);
+    setShowCreatePost(false);
+    setShowCreateMenu(false);
+    setShowStoryUpload(false);
+    setCommentPostId(null);
+    setActiveChat(null);
+  };
+
+  const refreshHomeExperience = () => {
+    resetSurfaceState();
+    setActiveTab('home');
+    if (!isOnboarded || !user?.id) return;
+    fetchPosts();
+    fetchStories();
+    fetchSuggestions();
+    fetchChats();
   };
 
   if (!hasSeenIntro && !isOnboarded) {
@@ -1733,7 +1801,7 @@ export default function App() {
         {/* Bottom Nav */}
         <Dock
           items={[
-            { icon: Home, label: 'Home', onClick: () => (activeTab === 'home' ? (fetchPosts(), fetchStories()) : setActiveTab('home')) },
+            { icon: Home, label: 'Home', onClick: refreshHomeExperience },
             { icon: Search, label: 'Search', onClick: () => setShowSearch(true) },
             { icon: Plus, label: 'Create', onClick: openCreateMenu },
             { icon: MessageSquare, label: 'Chat', onClick: () => (activeTab === 'chat' ? fetchChats() : setActiveTab('chat')), badge: totalUnreadMessages },
