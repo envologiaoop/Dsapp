@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense, useMemo } from 'react';
-import { Home, MessageSquare, Ghost, LogOut, Shield, Bell, Plus, User, Search, Lock, Eye, HelpCircle, Flag, ChevronRight, UserCog, Sparkles, Copy, RefreshCw, ExternalLink, X } from 'lucide-react';
+import { Home, MessageSquare, Ghost, LogOut, Shield, Bell, Plus, User, Search, Lock, Eye, HelpCircle, Flag, ChevronRight, UserCog, Sparkles, Copy, RefreshCw, ExternalLink, X, Download, Smartphone } from 'lucide-react';
 import { OnboardingFlow } from './components/Onboarding/OnboardingFlow';
 import { IntroductionFlow } from './components/Onboarding/IntroductionFlow';
 import { PostActions } from './components/PostActions';
@@ -29,6 +29,11 @@ const AUTH_SYNC_ORIGINS = [
   'http://localhost:3000',
 ];
 const LOGOUT_BLOCK_KEY = 'ddu_logout_block';
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
 
 const ChatRoom = lazy(() => import('./components/Chat/ChatRoom').then((m) => ({ default: m.ChatRoom })));
 const CreatePost = lazy(() => import('./components/CreatePost').then((m) => ({ default: m.CreatePost })));
@@ -96,6 +101,11 @@ export default function App() {
   const [copiedTelegramCode, setCopiedTelegramCode] = useState(false);
   const [liteModeEnabled, setLiteModeEnabled] = useState(false);
   const [settingsNotice, setSettingsNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [pwaReady, setPwaReady] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installState, setInstallState] = useState<'idle' | 'ready' | 'prompted' | 'installed' | 'dismissed'>('idle');
+  const [installHint, setInstallHint] = useState<string | null>(null);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   // Stable refs to avoid stale closures in socket effects
   const fetchChatsRef = useRef<(() => void) | null>(null);
@@ -219,6 +229,34 @@ export default function App() {
       setSettingsNotice({ type: 'error', message: 'Telegram verification failed. Please try again.' });
     } finally {
       setVerifyingTelegram(false);
+    }
+  };
+
+  const handleInstallApp = async () => {
+    setInstallHint(null);
+    if (installState === 'installed' || isStandalone) {
+      setInstallHint('Already installed—open it from your home screen.');
+      return;
+    }
+    if (!installPrompt) {
+      setInstallState('idle');
+      setInstallHint('Open your browser menu and choose “Add to Home Screen” to install.');
+      return;
+    }
+    try {
+      setInstallState('prompted');
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        setInstallState('installed');
+        setInstallHint('Installed! Find the icon on your home screen.');
+      } else {
+        setInstallState('dismissed');
+        setInstallHint('You can install anytime from the browser menu.');
+      }
+    } catch {
+      setInstallState('dismissed');
+      setInstallHint('Could not open the install prompt. Please try your browser menu.');
     }
   };
 
@@ -357,6 +395,44 @@ export default function App() {
       })
       .catch(() => {});
   }, [applyStoredUser]);
+
+  useEffect(() => {
+    const updateStandalone = () => {
+      const standalone = window.matchMedia('(display-mode: standalone)').matches;
+      setIsStandalone(standalone || (window.navigator as any).standalone === true);
+    };
+
+    const handleBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+      setInstallState('ready');
+      setInstallHint('Install to get quick access from your home screen.');
+    };
+
+    const handleInstalled = () => {
+      setInstallState('installed');
+      setInstallPrompt(null);
+      setInstallHint('App installed. Look for it on your home screen.');
+    };
+
+    updateStandalone();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready
+        .then(() => setPwaReady(true))
+        .catch(() => setPwaReady(false));
+    }
+
+    const displayModeMedia = window.matchMedia('(display-mode: standalone)');
+    displayModeMedia.addEventListener('change', updateStandalone);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleInstalled);
+
+    return () => {
+      displayModeMedia.removeEventListener('change', updateStandalone);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleInstalled);
+    };
+  }, []);
 
   // Handle deep links (e.g. from Telegram) like /?chatWith=<userId>&messageId=<messageId>
   useEffect(() => {
@@ -1451,6 +1527,57 @@ export default function App() {
                   <span className="text-sm flex-1">Edit Profile</span>
                   <ChevronRight size={16} className="text-muted-foreground" />
                 </button>
+              </div>
+            </div>
+
+            {/* App */}
+            <div>
+              <p className="px-4 pt-5 pb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">App</p>
+              <div className="divide-y divide-border border-t border-b border-border">
+                <div className="bg-card px-4 py-3 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                      <Download size={18} className="text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold">Install app</p>
+                      <p className="text-xs text-muted-foreground">Add DDU Social to your home screen for 1-tap access.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleInstallApp}
+                      className={cn(
+                        'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-colors',
+                        installState === 'installed' || isStandalone
+                          ? 'bg-emerald-500 text-emerald-50 hover:bg-emerald-500/90'
+                          : 'bg-primary text-primary-foreground hover:opacity-90'
+                      )}
+                    >
+                      {installState === 'installed' || isStandalone ? (
+                        <>Installed</>
+                      ) : installState === 'prompted' ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          Installing…
+                        </>
+                      ) : (
+                        <>
+                          <Download size={14} />
+                          Install
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                    {installHint && <p>{installHint}</p>}
+                    {!pwaReady && <p>Preparing offline cache…</p>}
+                    {isStandalone && (
+                      <p className="text-emerald-600 dark:text-emerald-400">
+                        You&apos;re already running the installed app.
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 

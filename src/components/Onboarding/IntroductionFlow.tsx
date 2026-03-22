@@ -94,7 +94,8 @@ export function IntroductionFlow({ onComplete }: IntroductionFlowProps) {
         icon: <Sparkles className="h-5 w-5 text-primary" />,
         points: [
           'Trade memes and updates between classes.',
-          'Hype your friends with likes, stories, and reels.',
+          'Hype your friends with likes, stories, and shout-outs.',
+          'Fresh features are rolling out soon—stay tuned.',
           'Switch light/dark to match your vibe.',
         ],
       },
@@ -105,7 +106,7 @@ export function IntroductionFlow({ onComplete }: IntroductionFlowProps) {
         accent: 'from-emerald-300/30 via-emerald-200/20 to-transparent',
         icon: <HandHeart className="h-5 w-5 text-emerald-500" />,
         points: [
-          'Post what you want, from quick notes to reels.',
+          'Post what you want, from quick notes to photos or polls.',
           'Chats that feel natural, not like another group project.',
           'Profiles that help your people spot you fast.',
         ],

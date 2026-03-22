@@ -726,7 +726,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     const code = crypto.randomInt(100000, 1000000).toString();
     user.passwordResetCode = code;
     user.passwordResetExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     // Recovery is Telegram-first for linked accounts.
     if (user.telegramChatId) {
@@ -748,7 +748,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     });
   } catch (error) {
     console.error('POST /api/auth/forgot-password error:', error);
-    res.status(500).json({ error: 'Failed to request password reset' });
+    res.status(500).json({ error: 'Unable to send reset code right now. Please try again shortly.' });
   }
 });
 
@@ -779,7 +779,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
     user.password = await hashPassword(newPassword);
     user.passwordResetCode = undefined;
     user.passwordResetExpiresAt = undefined;
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     if (user.telegramChatId) {
       try {
