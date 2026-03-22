@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Home, MessageSquare, Ghost, LogOut, Shield, Bell, Plus, User, Search, Lock, Eye, HelpCircle, Flag, ChevronRight, UserCog, Sparkles, Copy, RefreshCw, ExternalLink, X } from 'lucide-react';
 import { OnboardingFlow } from './components/Onboarding/OnboardingFlow';
+import { IntroductionFlow } from './components/Onboarding/IntroductionFlow';
 import { PostActions } from './components/PostActions';
 import { FollowButton } from './components/FollowButton';
 import { ImageCarousel } from './components/ImageCarousel';
@@ -52,6 +53,13 @@ function LazyScreenFallback({ label = 'Loading...' }: { label?: string }) {
 }
 
 export default function App() {
+  const [hasSeenIntro, setHasSeenIntro] = useState(() => {
+    try {
+      return localStorage.getItem('ddu_intro_seen') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [isOnboarded, setIsOnboarded] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'home' | 'chat' | 'inbox' | 'profile' | 'settings'>('home');
@@ -267,6 +275,15 @@ export default function App() {
     }
   };
 
+  const markIntroSeen = useCallback(() => {
+    setHasSeenIntro(true);
+    try {
+      localStorage.setItem('ddu_intro_seen', 'true');
+    } catch {
+      // ignore write issues
+    }
+  }, []);
+
   const normalizeUser = useCallback((raw: any) => {
     if (!raw) return raw;
     const id = raw.id || raw._id?.toString?.() || raw._id;
@@ -283,6 +300,7 @@ export default function App() {
       if (!normalized.telegramChatId) {
         return false;
       }
+      markIntroSeen();
       setUser(normalized);
       setIsOnboarded(true);
       setTelegramNotificationsEnabled(Boolean(normalized.telegramNotificationsEnabled));
@@ -295,7 +313,7 @@ export default function App() {
     } catch (error) {
       return false;
     }
-  }, [normalizeUser]);
+  }, [markIntroSeen, normalizeUser]);
 
   const didHandleDeepLinkRef = useRef(false);
 
@@ -762,6 +780,10 @@ export default function App() {
     setSearchInitialQuery(hashtag);
     setShowSearch(true);
   };
+
+  if (!hasSeenIntro && !isOnboarded) {
+    return <IntroductionFlow onComplete={markIntroSeen} />;
+  }
 
   if (!isOnboarded) {
     return <OnboardingFlow onFinish={handleOnboardingFinish} />;
