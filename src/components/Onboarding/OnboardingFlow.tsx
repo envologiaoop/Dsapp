@@ -501,6 +501,7 @@ export const OnboardingFlow: React.FC<OnboardingFlowProps> = ({ onFinish }) => {
       form.append('username', normalized.username);
       form.append('email', normalized.email);
       form.append('password', normalized.password);
+      form.append('confirmPassword', normalized.confirmPassword);
       form.append('department', normalized.department);
       form.append('year', normalized.year);
       if (signupAvatarFile) form.append('avatar', signupAvatarFile);
