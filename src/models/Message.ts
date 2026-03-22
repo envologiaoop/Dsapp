@@ -18,6 +18,8 @@ export interface IMessage extends Document {
   reactions: IReaction[];
   deletedAt?: Date;
   deletedBy?: mongoose.Types.ObjectId;
+  /** Optional reference to the original post ID if this message is a shared post */
+  sharedPostId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +45,7 @@ const MessageSchema = new Schema<IMessage>(
     reactions: [ReactionSchema],
     deletedAt: { type: Date },
     deletedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    sharedPostId: { type: Schema.Types.ObjectId, ref: 'Post' },
   },
   { timestamps: true }
 );

@@ -1187,13 +1187,19 @@ app.post('/api/posts/:postId/share', async (req, res) => {
     await Share.insertMany(shares);
     await Post.findByIdAndUpdate(postId, { $inc: { sharesCount: receiverIds.length } });
 
-    // Shares should arrive as chat messages (not notifications)
+    // Fetch the post to share with full content
+    const post = await Post.findById(postId).populate('userId', 'name username avatarUrl').lean();
+    if (!post) return res.status(404).json({ error: 'Post not found' });
+
+    // Shares should arrive as chat messages with actual post content (not notifications)
     await Promise.all(
       receiverIds.map(async (receiverId: string) => {
         const message = await Message.create({
           senderId: userId,
           receiverId,
-          text: `?? Shared a post: ${postId}`,
+          text: post.content || '(Shared post)',
+          imageUrl: post.mediaUrl || (post.mediaUrls && post.mediaUrls[0]) || undefined,
+          sharedPostId: postId, // Store the original post ID for reference
           status: 'sent',
         });
         io.to(`user_${receiverId}`).emit('receive_private_message', message.toObject());
