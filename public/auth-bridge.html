@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>DDU Social Auth Bridge</title>
+</head>
+<body>
+<script>
+(() => {
+  const allowedOrigins = [
+    'https://ddusocial.vercel.app',
+    'https://ddusocial.tech',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ];
+
+  function respond(event, payload) {
+    if (!event.source) return;
+    try {
+      event.source.postMessage(payload, event.origin);
+    } catch (error) {
+      console.error('Auth bridge respond error', error);
+    }
+  }
+
+  window.addEventListener('message', (event) => {
+    if (!allowedOrigins.includes(event.origin)) return;
+
+    const data = event.data || {};
+
+    if (data.type === 'ddu-auth-bridge-request') {
+      const stored = localStorage.getItem('ddu_user');
+      respond(event, { type: 'ddu-auth-bridge-response', user: stored });
+      return;
+    }
+
+    if (data.type === 'ddu-auth-bridge-store') {
+      try {
+        const payload = typeof data.user === 'string' ? data.user : JSON.stringify(data.user);
+        if (payload) {
+          localStorage.setItem('ddu_user', payload);
+          respond(event, { type: 'ddu-auth-bridge-response', user: payload });
+        }
+      } catch (error) {
+        console.error('Auth bridge store error', error);
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
